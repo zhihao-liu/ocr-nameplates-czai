@@ -1,3 +1,13 @@
+# Others
+libcaffe\.so*
+*\~
+
+# Build files
+*build*
+
+# IDE settings
+\.idea
+
 # Prerequisites
 *.d
 
