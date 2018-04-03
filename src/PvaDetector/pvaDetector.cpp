@@ -258,7 +258,7 @@ void PVADetector::drawBox(cv::Mat& img, std::vector<Detection> &dets)
 {
     for (int i = 0; i<dets.size(); ++i)
     {
-        rectangle(img, dets[i].getRect(), cv::Scalar(255, 0, 255), 2);
+        rectangle(img, dets[i].getRect(), cv::Scalar(255, 0, 255), 1);
         std::ostringstream os;
         os.precision(2); //保留2位有效数字
         os << dets[i].getScore();
