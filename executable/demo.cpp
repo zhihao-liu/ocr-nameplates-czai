@@ -11,25 +11,20 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include "pvaDetector.h"
 
-using namespace std;
-using namespace cv;
-namespace fs = boost::filesystem;
+#define SHOW_FALSE_DETS 0
+#define OUTPUT_DETAILS 0
 
-#define SHOW_RESULT false
-#define OUTPUT_DETAILS false
-
-int const WIDTH_CHAR = 14;
-int const HEIGHT_CHAR = 28;
-
-int ROI_X_BORDER = 10;
-int ROI_Y_BORDER = 5;
+int ROI_X_BORDER = 8;
+int ROI_Y_BORDER = 4;
+int CHAR_X_BORDER = 2;
+int CHAR_Y_BORDER = 1;
 
 
 class LeastSquare {
 private:
     double a, b;
 public:
-    LeastSquare(vector<double> const& x, vector<double> const& y) {
+    LeastSquare(std::vector<double> const& x, std::vector<double> const& y) {
         double t1 = 0, t2 = 0, t3 = 0, t4 = 0;
         for(int i = 0; i < x.size(); ++i)
         {
@@ -43,15 +38,15 @@ public:
     }
 
     double slope() { return a; };
-    double constant() {return b; };
+    double constant() { return b; };
 };
 
-vector<string> readClassNames(string const& path) {
-    ifstream file(path);
-    vector<string> classNames;
+std::vector<std::string> readClassNames(std::string const& path) {
+    std::ifstream file(path);
+    std::vector<std::string> classNames;
     classNames.push_back("__background__");
 
-    string line;
+    std::string line;
     while (getline(file, line)) {
         classNames.push_back(line);
     }
@@ -59,13 +54,13 @@ vector<string> readClassNames(string const& path) {
 };
 
 template<typename T, typename F>
-T const& findMedian(vector<T> vec, F const& comp) {
-    nth_element(vec.begin(), vec.begin() + vec.size() / 2, vec.end(), comp);
+T const& findMedian(std::vector<T> vec, F const& comp) {
+    std::nth_element(vec.begin(), vec.begin() + vec.size() / 2, vec.end(), comp);
     return vec.at(vec.size() / 2);
 };
 
 template<typename T, typename F>
-T const& computeMean(vector<T> const& vec, F const& map) {
+T const& computeMean(std::vector<T> const& vec, F const& map) {
     double avg = 0;
     for (auto item: vec) {
         avg += map(item);
@@ -73,38 +68,46 @@ T const& computeMean(vector<T> const& vec, F const& map) {
     return avg / vec.size();
 };
 
-int xMid(Rect const& rect) {
+int xMid(cv::Rect const& rect) {
     return rect.x + round(rect.width / 2.0);
 }
 
-int yMid(Rect const& rect) {
+int yMid(cv::Rect const& rect) {
     return rect.y + round(rect.height / 2.0);
 }
 
-void printAll(unordered_map<string, string> const& map) {
+void printAll(std::unordered_map<std::string, std::string> const& map) {
     for (auto const& pair: map) {
-        cout << pair.first << ": " << pair.second << endl;
+        std::cout << pair.first << ": " << pair.second << std::endl;
     }
 };
 
-void printAll(vector<Detection> const& dets) {
+void printAll(std::vector<Detection> const& dets) {
     for (auto const& det: dets) {
-        cout << det.getClass() << ": " << det.getScore() << " x" << xMid(det.getRect()) << endl;
+        std::cout << det.getClass() << ": " << det.getScore()
+             << " x" << det.getRect().x << " y" << det.getRect().y
+             << " w" << det.getRect().width << " h" << det.getRect().height << std::endl;
     }
 }
 
-void sortInPosition(vector<Detection>& dets) {
-    sort(dets, [](Detection const& det1, Detection const& det2){ return xMid(det1.getRect()) < xMid(det2.getRect()); });
+void sortInPosition(std::vector<Detection>& dets) {
+    std::sort(dets.begin(), dets.end(), [](Detection const& det1, Detection const& det2){ return xMid(det1.getRect()) < xMid(det2.getRect()); });
 }
 
-bool isSortedInPosition(vector<Detection> const& dets) {
-    return is_sorted(dets.begin(), dets.end(), [](Detection const& det1, Detection const& det2){ return xMid(det1.getRect()) < xMid(det2.getRect()); });
+bool isSortedInPosition(std::vector<Detection> const& dets) {
+    return std::is_sorted(dets.begin(), dets.end(), [](Detection const& det1, Detection const& det2){ return xMid(det1.getRect()) < xMid(det2.getRect()); });
 }
 
-string joinDetectedChars(vector<Detection> const& dets) {
+void imrotate(cv::Mat& img, cv::Mat& newImg, double angleInDegree){
+    cv::Point2f pt(img.cols / 2.0, img.rows / 2.0);
+    cv::Mat r = getRotationMatrix2D(pt, angleInDegree, 1.0);
+    warpAffine(img, newImg, r , img.size());
+}
+
+std::string joinDetectedChars(std::vector<Detection> const& dets) {
     assert(isSortedInPosition(dets));
 
-    string str = "";
+    std::string str = "";
     for (auto const& det: dets) {
         str += det.getClass();
     }
@@ -116,8 +119,8 @@ bool containsConfidentOne(Detection const& det1, Detection const& det2) {
            || (det2.getClass() == "1" && det1.getClass() != "7" && det1.getClass() != "4" && det1.getClass() != "H" );
 }
 
-void eliminateYOutliers(vector<Detection>& dets) {
-    if (dets.size() == 0) return;
+void eliminateHorizontalShifts(std::vector<Detection> &dets) {
+    if (dets.empty()) return;
 
     // remove those lies off the horizontal reference line
     int heightRef = findMedian(dets, [](Detection const &det1, Detection const &det2) {
@@ -128,55 +131,77 @@ void eliminateYOutliers(vector<Detection>& dets) {
         return yMid(det1.getRect()) < yMid(det2.getRect());
     }).getRect());
 
-    for (auto det = dets.begin(); det != dets.end();) {
-        if (abs(yMid(det->getRect()) - yMidRef) > 0.25 * heightRef) {
-            det = dets.erase(det);
+    for (auto itr = dets.begin(); itr != dets.end();) {
+        if (abs(yMid(itr->getRect()) - yMidRef) > 0.25 * heightRef) {
+            itr = dets.erase(itr);
         } else {
-            ++det;
+            ++itr;
         }
     }
 }
 
-void eliminateXOverlaps(vector<Detection>& dets) {
+int computeXOverlap(cv::Rect const &rect1, cv::Rect const &rect2) {
+    int xMin = std::min(rect1.x, rect2.x);
+    int xMax = std::max(rect1.x + rect1.width, rect2.x + rect2.width);
+    int xOverlap = (rect1.width + rect2.width) - (xMax - xMin);
+
+    return xOverlap <= 0 ? 0 : xOverlap;
+}
+
+int computeYOverlap(cv::Rect const &rect1, cv::Rect const &rect2) {
+    int yMin = std::min(rect1.y, rect2.y);
+    int yMax = std::max(rect1.y + rect1.height, rect2.y + rect2.height);
+    int yOverlap = (rect1.height + rect2.height) - (yMax - yMin);
+
+    return yOverlap <= 0 ? 0 : yOverlap;
+}
+
+int computeAreaIntersection(cv::Rect const &rect1, cv::Rect const &rect2) {
+    int xOverlap = computeXOverlap(rect1, rect2);
+    int yOverlap = computeYOverlap(rect1, rect2);
+
+    return xOverlap * yOverlap;
+}
+
+double computeIou(cv::Rect const &rect1, cv::Rect const &rect2) {
+    int areaIntersection = computeAreaIntersection(rect1, rect2);
+    return double(areaIntersection) / (rect1.area() + rect2.area() - areaIntersection);
+}
+
+void eliminateOverlaps(std::vector<Detection> &dets) {
     if (dets.size() <= 1) return;
     assert(isSortedInPosition(dets));
 
-    // remove overlapped detections according to scores
-    vector<int> spacings;
-    for (auto det = dets.begin() + 1; det != dets.end(); ++det) {
-        spacings.push_back(abs(xMid((det - 1)->getRect()) - xMid(det->getRect())));
-    }
-    int spacingRef = findMedian(spacings, less<int>());
-
-    for (auto det = dets.begin() + 1; det != dets.end();) {
+    for (auto itr = dets.begin() + 1; itr != dets.end();) {
         // set larger tolerance for "1" because it is overlapped most of the time
-        double firstTol = containsConfidentOne(*(det - 1), *det) ? 0.2 : 0.4;
-        double secondTol = containsConfidentOne(*(det - 1), *det) ? 0.2 : 0.7;
+        double firstTol = containsConfidentOne(*(itr - 1), *itr) ? 0.6 : 0.4;
+        double secondTol = containsConfidentOne(*(itr - 1), *itr) ? 0.6 : 0.3;
 
-        int xSpacing = abs(xMid((det - 1)->getRect()) - xMid(det->getRect()));
-        if (xSpacing < firstTol * spacingRef) {
-            if ((det - 1)->getScore() < det->getScore()) {
-                det = dets.erase(det - 1) + 1;
+        double overlap = computeIou((itr - 1)->getRect(), itr->getRect());
+//        std::cout << "iou=" << overlap << std::endl;
+        if (overlap > firstTol) {
+            if ((itr - 1)->getScore() < itr->getScore()) {
+                itr = dets.erase(itr - 1) + 1;
                 continue;
             } else {
-                det = dets.erase(det);
+                itr = dets.erase(itr);
                 continue;
             }
-        } else if (xSpacing < secondTol * spacingRef) {
-            if ((det - 1)->getScore() < det->getScore() && (det - 1)->getScore() < 0.2) {
-                det = dets.erase(det - 1) + 1;
+        } else if (overlap > secondTol) {
+            if ((itr - 1)->getScore() < itr->getScore() && (itr - 1)->getScore() < 0.2) {
+                itr = dets.erase(itr - 1) + 1;
                 continue;
-            } else if (det->getScore() < (det - 1)->getScore() && det->getScore() < 0.2) {
-                det = dets.erase(det);
+            } else if (itr->getScore() < (itr - 1)->getScore() && itr->getScore() < 0.2) {
+                itr = dets.erase(itr);
                 continue;
             }
         };
 
-        ++det;
+        ++itr;
     }
 }
 
-Rect computeExtent(vector<Detection> const &dets) {
+cv::Rect computeExtent(std::vector<Detection> const &dets) {
     int left = INT_MAX, right = INT_MIN, top = INT_MAX, bottom = INT_MIN;
     for (auto det: dets) {
         if (det.getRect().x < left) left = det.getRect().x;
@@ -185,42 +210,53 @@ Rect computeExtent(vector<Detection> const &dets) {
         if (det.getRect().y + det.getRect().height > bottom) bottom = det.getRect().y + det.getRect().height;
     }
 
-    return Rect(left, top, right - left, bottom - top);
+    return cv::Rect(left, top, right - left, bottom - top);
 }
 
-Rect& expandRoi(Rect& roi, vector<Detection> dets) {
-    assert(isSortedInPosition(dets));
-    int vacancy = dets.size() < 17 ? 17 - dets.size() : 0;
-
-    int newX = roi.x;
-    int newWidth = roi.width + vacancy * WIDTH_CHAR;
-    int newY = roi.y;
-    int newHeight = roi.height;
-
-    vector<double> xCoords, yCoords;
-    transform(dets.begin(), dets.end(), back_inserter(xCoords), [](Detection det){ return xMid(det.getRect()); });
-    transform(dets.begin(), dets.end(), back_inserter(yCoords), [](Detection det){ return yMid(det.getRect()); });
+double computeCharAlignmentSlope(std::vector<Detection> const& dets) {
+    std::vector<double> xCoords, yCoords;
+    std::transform(dets.begin(), dets.end(), back_inserter(xCoords), [](Detection det){ return xMid(det.getRect()); });
+    std::transform(dets.begin(), dets.end(), back_inserter(yCoords), [](Detection det){ return yMid(det.getRect()); });
 
     LeastSquare ls(xCoords, yCoords);
-    double slope = ls.slope();
+    return ls.slope();
+}
+
+cv::Rect& expandRoi(cv::Rect& roi, std::vector<Detection> const& dets) {
+    assert(isSortedInPosition(dets));
+
+    int vacancy = 17 - int(dets.size());
+    if (vacancy <= 0) return roi;
+
+    double charWidth = computeExtent(dets).width / dets.size();
+    double additionalWidth = charWidth * vacancy * 1.1;
+
+    int newX = roi.x;
+    int newY = roi.y;
+    int newW = round(roi.width + additionalWidth);
+    int newH = roi.height;
+
+    double slope = computeCharAlignmentSlope(dets);
 
     if (slope > 0) {
-        newHeight += slope * vacancy * WIDTH_CHAR;
+        newH += round(slope * additionalWidth);
     } else {
-        newY += slope * vacancy * WIDTH_CHAR;
+        newY += round(slope * additionalWidth);
     }
 
     roi.x = newX;
     roi.y = newY;
-    roi.width = newWidth;
-    roi.height = newHeight;
+    roi.width = newW;
+    roi.height = newH;
+
+    return roi;
 }
 
-bool isRoiTooLarge(Rect const& roi, Rect const& detsExtent) {
+bool isRoiTooLarge(cv::Rect const& roi, cv::Rect const& detsExtent) {
     return (roi.width - detsExtent.width > 2.5 * ROI_X_BORDER) || (roi.height - detsExtent.height > 2.5 * ROI_Y_BORDER);
 }
 
-Rect& adjustRoi(Rect& roi, Rect const& detsExtent) {
+cv::Rect& adjustRoi(cv::Rect& roi, cv::Rect const& detsExtent) {
     int newLeft = roi.x + (detsExtent.x - ROI_X_BORDER);
     int newRight = roi.x + (detsExtent.x + detsExtent.width + ROI_X_BORDER);
     int newTop = roi.y + (detsExtent.y - ROI_Y_BORDER);
@@ -234,28 +270,151 @@ Rect& adjustRoi(Rect& roi, Rect const& detsExtent) {
     return roi;
 }
 
-Rect& validateRoi(Rect& roi, Mat const& img) {
-    // ensure the roi is within the extent of the image after adjustments
-    if (roi.x < 0) roi.x = 0;
-    if (roi.x + roi.width > img.cols) roi.width = img.cols - roi.x;
-    if (roi.y < 0) roi.y = 0;
-    if (roi.y + roi.height > img.rows) roi.height = img.rows - roi.y;
-    return roi;
+void validateWindow(cv::Rect& window, int width, int height) {
+    if (window.x < 0) {
+        window.x = 0;
+    } else if (window.x >= width) {
+        window.x = width - 1;
+    }
+
+    if (window.y < 0) {
+        window.y = 0;
+    } else if (window.y >= height) {
+        window.y = height - 1;
+    }
+
+    if (window.width < 1) {
+        window.width = 1;
+    } else if (window.x + window.width > width) {
+        window.width = width - window.x;
+    }
+
+    if (window.height < 1) {
+        window.height = 1;
+    } else if (window.y + window.height > height) {
+        window.height = height - window.y;
+    }
 }
 
-void updateWithDetectionsGray(vector<Detection>& dets, vector<Detection> const& detsGray) {
-    if (dets.size() != detsGray.size()) return;
+void validateWindow(cv::Rect& roi, cv::Mat const& img) {
+    // ensure the roi is within the extent of the image after adjustments
+    validateWindow(roi, img.cols, img.rows);
+}
 
-    assert(isSortedInPosition(dets) && isSortedInPosition(detsGray));
-    for (int i = 0; i < dets.size(); ++i) {
-        if (detsGray[i].getScore() - dets[i].getScore() > 0.3) {
-            dets[i] = detsGray[i];
+void validateWindow(cv::Rect& roi, cv::Rect const& extent) {
+    // ensure the roi is within the extent of the image after adjustments
+    validateWindow(roi, extent.width, extent.height);
+}
+
+int computeSpacing(cv::Rect const& rect1, cv::Rect const& rect2) {
+    return std::abs(xMid(rect1) - xMid(rect2));
+}
+
+int estimateCharSpacing(std::vector<Detection> const& dets) {
+    assert(isSortedInPosition(dets));
+
+    std::vector<int> spacings;
+    for (auto itr = dets.begin() + 1; itr != dets.end(); ++itr) {
+        spacings.push_back(computeSpacing((itr - 1)->getRect(), itr->getRect()));
+    }
+
+    return findMedian(spacings, std::less<int>());
+}
+
+void addGapDetections(PVADetector& detector, std::vector<Detection>& dets, cv::Rect const& roi, cv::Mat const& img) {
+    if (dets.empty() || dets.size() >= 17) return;
+    assert(isSortedInPosition(dets));
+
+    int spacingRef = estimateCharSpacing(dets);
+    for (auto itr = dets.begin() + 1; itr != dets.end(); ++itr) {
+        cv::Rect leftRect = (itr - 1)->getRect();
+        cv::Rect rightRect = itr->getRect();
+        if (computeSpacing(leftRect, rightRect) > 1.5 * spacingRef) {
+            int gapX = leftRect.x + leftRect.width - CHAR_X_BORDER;
+            int gapY = (leftRect.y + rightRect.y) / 2 - CHAR_Y_BORDER;
+            int gapW = (rightRect.x - (leftRect.x + leftRect.width)) + CHAR_X_BORDER * 2;
+            int gapH = (leftRect.height + rightRect.height) / 2 + CHAR_Y_BORDER * 2;
+
+            int gapXReal = roi.x + gapX;
+            int gapYReal = roi.y + gapY;
+
+            cv::Rect gapWindow;
+            gapWindow.x = gapXReal;
+            gapWindow.y = gapYReal;
+            gapWindow.width = gapW;
+            gapWindow.height = gapH;
+
+            validateWindow(gapWindow, img);
+            std::vector<Detection> gapDets = detector.detect(img(gapWindow));
+
+            if (!gapDets.empty()) {
+                gapWindow.x = gapX;
+                gapWindow.y = gapY;
+                validateWindow(gapWindow, roi);
+
+                Detection& gapDet = gapDets.front();
+                gapDet.setRect(gapWindow);
+
+                dets.push_back(gapDet);
+            }
         }
     }
 }
 
+//void appendTrailDetections(PVADetector &detector, std::vector<Detection> &dets, cv::Rect const &roi, cv::Mat const &img) {
+//    if (dets.empty() || dets.size() >= 17) return;
+//    assert(isSortedInPosition(dets));
+//
+//    int vacancy = 17 - int(dets.size());
+//
+//    int charWidth = computeExtent(dets).width / dets.size();
+//    int charHeight = findMedian(dets, [](Detection const& det1, Detection const& det2){ return det1.getRect().height < det2.getRect().height; })
+//            .getRect().height;
+//    double slope = computeCharAlignmentSlope(dets);
+//
+//    cv::Rect lastWindow = dets.back().getRect();
+//    int windowX = lastWindow.x + lastWindow.width - CHAR_X_BORDER;
+//    int windowY = lastWindow.y + charWidth * slope;
+//    int windowW = charWidth + CHAR_X_BORDER * 2;
+//    int windowH = charHeight + CHAR_Y_BORDER * 2;
+//
+//    for (int i = 0; i < vacancy; ++i) {
+//        int windowXReal = roi.x + windowX;
+//        int windowYReal = roi.y + windowY;
+//
+//        cv::Rect trailWindow;
+//        trailWindow.x = windowXReal;
+//        trailWindow.y = windowYReal;
+//        trailWindow.width = windowW;
+//        trailWindow.height = windowH;
+//
+//        validateWindow(trailWindow, img);
+//        std::vector<Detection> trailDets = detector.detect(img(trailWindow));
+//
+//        if (!trailDets.empty()) {
+//            trailWindow.x = windowX;
+//            trailWindow.y = windowY;
+//            validateWindow(trailWindow, roi);
+//
+//            Detection& trailDet = trailDets.front();
+//            trailDet.setRect(trailWindow);
+//
+//            dets.push_back(trailDet);
+//        }
+//
+//        // update for the next possible trailing position
+//        windowX = windowX + windowW - CHAR_X_BORDER;
+//        windowY = windowY + charWidth * slope;
+//    }
+//}
+
 int main(int argc, char* argv[]) {
+    using namespace std;
+    using namespace cv;
+    namespace fs = boost::filesystem;
+
     string pathInputDir = "/home/cuizhou/lzh/data/raw-alfaromeo/";
+//    string pathInputDir = "/home/cuizhou/lzh/data/selected-test/";
 
     string pathModelKeys = "/home/cuizhou/lzh/models/table_header_model/car_brand_iter_100000.caffemodel";
     string pathPtKeys = "/home/cuizhou/lzh/models/table_header_model/test.prototxt";
@@ -273,15 +432,14 @@ int main(int argc, char* argv[]) {
 
     PVADetector detectorValues;
     detectorValues.init(pathPtValues, pathModelValues, classesChars);
-    detectorValues.setThresh(0.1, 0.3);
+    detectorValues.setThresh(0.05, 0.3);
     detectorValues.setComputeMode("gpu", 0);
 
-    int countAll = 0, countCorrect = 0;
+    int countAll = 0, countCorrect = 0, countShorter = 0, countLonger= 0, countWrong = 0;
 
-    auto itrEnd = fs::directory_iterator();
-    for (fs::directory_iterator itr(pathInputDir); itr != itrEnd; ++itr) {
+    for (fs::directory_iterator itr(pathInputDir); itr != fs::directory_iterator(); ++itr) {
         string pathImg = itr->path().string();
-//        string pathImg = "/home/cuizhou/lzh/data/selected-test/ZAREAECN3H7544296.jpg";
+//        string pathImg = "/home/cuizhou/lzh/data/raw-alfaromeo/ZAREAEBN1H7545545.jpg";
         string fileName = itr->path().filename().string();
         string id = fileName.substr(0, fileName.length() - 4);
 
@@ -291,7 +449,7 @@ int main(int argc, char* argv[]) {
 //        unordered_map<string, string> infoTable;
 
         vector<Detection> keyDets = detectorKeys.detect(img);
-        for (auto keyDet: keyDets) {
+        for (auto const& keyDet: keyDets) {
             string key = keyDet.getClass();
             Rect keyRect = keyDet.getRect();
             string value;
@@ -318,44 +476,56 @@ int main(int argc, char* argv[]) {
                 vector<Detection> valueDets = detectorValues.detect(img(valueRect));
 
                 sortInPosition(valueDets);
-                eliminateYOutliers(valueDets);
-                eliminateXOverlaps(valueDets);
+                eliminateHorizontalShifts(valueDets);
+                eliminateOverlaps(valueDets);
+
+                double slope = computeCharAlignmentSlope(valueDets);
+                if (std::abs(slope) > 0.025) {
+                    double angle = std::atan(slope) / CV_PI * 180;
+                    imrotate(img, img, angle);
+
+                    vector<Detection> keyDets = detectorKeys.detect(img);
+                    for (auto const& keyDet: keyDets) {
+                        if (keyDet.getClass() == "VehicleId") {
+                            keyRect = keyDet.getRect();
+                        }
+                    }
+
+                    valueRect = cv::Rect(keyRect.x + keyRect.width + 5, round(keyRect.y - keyRect.height * 0.25),round(keyRect.width * 1.75), round(keyRect.height * 1.5));
+                    valueDets = detectorValues.detect(img(valueRect));
+
+                    sortInPosition(valueDets);
+                    eliminateHorizontalShifts(valueDets);
+                    eliminateOverlaps(valueDets);
+                }
 
                 // second round in the network
                 adjustRoi(valueRect, computeExtent(valueDets));
                 expandRoi(valueRect, valueDets);
-                validateRoi(valueRect, img);
+                validateWindow(valueRect, img);
                 valueDets = detectorValues.detect(img(valueRect));
 
                 sortInPosition(valueDets);
-                eliminateYOutliers(valueDets);
-                eliminateXOverlaps(valueDets);
-
+                eliminateHorizontalShifts(valueDets);
+                eliminateOverlaps(valueDets);
 
                 Rect detsExtent = computeExtent(valueDets);
                 if (isRoiTooLarge(valueRect, detsExtent)) {
                     // third round in the network
                     adjustRoi(valueRect, detsExtent);
-                    validateRoi(valueRect, img);
+                    validateWindow(valueRect, img);
                     valueDets = detectorValues.detect(img(valueRect));
 
                     sortInPosition(valueDets);
-                    eliminateYOutliers(valueDets);
-                    eliminateXOverlaps(valueDets);
+                    eliminateHorizontalShifts(valueDets);
+                    eliminateOverlaps(valueDets);
                 }
 
-//                Mat valueRoiGray = img(valueRect).clone();
-//                cvtColor(valueRoiGray, valueRoiGray,CV_RGB2GRAY);
-//                cv::adaptiveThreshold(valueRoiGray, valueRoiGray, 255, ADAPTIVE_THRESH_MEAN_C, THRESH_BINARY, 21, 0);
-//                cvtColor(valueRoiGray, valueRoiGray,CV_GRAY2RGB);
-//                vector <Detection> valueDetsGray = detectorValues.detect(valueRoiGray);
-//                eliminateYOutliers(valueDetsGray);
-//                eliminateXOverlaps(valueDetsGray);
-//
-//                sortInPosition(valueDets);
-//                sortInPosition(valueDetsGray);
-//                updateWithDetectionsGray(valueDets, valueDetsGray);
-
+                if (valueDets.size() < 17) {
+                    // fourth round in the network
+                    addGapDetections(detectorValues, valueDets, valueRect, img);
+                    sortInPosition(valueDets);
+                }
 
                 value = joinDetectedChars(valueDets);
 
@@ -366,12 +536,11 @@ int main(int argc, char* argv[]) {
                 }
 
                 ++countAll;
-                countCorrect += value == id;
-                string msg = value == id ? "yes" : (value.length() == id.length() ? "wrong" : (value.length() > id.length()) ? "longer" : "shorter");
+                string msg = value == id ? (++countCorrect, "yes") : (value.length() == id.length() ? (++countWrong, "wrong") : (value.length() > id.length()) ? (++countLonger, "longer") : (++countShorter, "shorter"));
                 cout << countAll << " -- " << msg << endl;
 
                 // show those with incorrect results
-                if (value != id) {
+                if ( value != id) {
                     Mat dst = img.clone();
                     Mat roi = dst(valueRect);
                     detectorValues.drawBox(roi, valueDets);
@@ -380,7 +549,7 @@ int main(int argc, char* argv[]) {
 
                     imwrite("/home/cuizhou/lzh/data/results/" + fileName, dst);
 
-                    if (SHOW_RESULT) {
+                    if (SHOW_FALSE_DETS) {
                         cout << "Ref: " << id << endl;
                         cout << "Out: " << value << endl;
                         cv::namedWindow("result", CV_WINDOW_AUTOSIZE);
@@ -401,9 +570,12 @@ int main(int argc, char* argv[]) {
             }
 //            infoTable[key] = value;
         }
-    }
 
-    cout << countCorrect << " out of " << countAll << " (" << 100 * float(countCorrect) / countAll << "%) correct." << endl;
+        cout << countCorrect << " out of " << countAll << " (" << 100 * float(countCorrect) / countAll << "%) correct." << "...";
+        cout << countWrong << " out of " << countAll << " (" << 100 * float(countWrong) / countAll << "%) wrong." << "...";
+        cout << countShorter << " out of " << countAll << " (" << 100 * float(countShorter) / countAll << "%) shorter." << "...";
+        cout << countLonger << " out of " << countAll << " (" << 100 * float(countLonger) / countAll << "%) longer." << endl;
+    }
 
     waitKey(0);
     return 0;
