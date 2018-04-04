@@ -5,14 +5,15 @@
 * @Function
 */
 
-#include "detection.h"
+#include "Detection.h"
 
 using namespace cv;
 using namespace std;
 // constructor
-Detection::Detection()
-{
+Detection::Detection() {
+
 }
+
 Detection::Detection(const std::string& cls, const cv::Rect& rect, const float& score)
     :m_cls(cls), m_rect(rect), m_score(score)
 {

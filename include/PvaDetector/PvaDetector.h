@@ -3,7 +3,7 @@
 
 #include "caffe/caffe.hpp"
 #include <opencv2/core/core.hpp>
-#include "detection.h"
+#include "Detection.h"
 #include <vector>
 
 class PVADetector

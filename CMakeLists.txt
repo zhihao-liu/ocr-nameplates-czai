@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
-project(ocr_cuizhou)
+project(cuizhou_ocr)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
@@ -11,10 +11,11 @@ include_directories(
         /usr/include
         ${PROJECT_SOURCE_DIR}/include
         ${OpenCV_INCLUDE_DIR}
+        ${PROJECT_SOURCE_DIR}/3rdparty/caffe/include
+        ${PROJECT_SOURCE_DIR}/include/CuizhouOcr
         ${PROJECT_SOURCE_DIR}/include/PvaDetector
         ${PROJECT_SOURCE_DIR}/include/KCF
         ${PROJECT_SOURCE_DIR}/include/HungarianAlg
-        ${PROJECT_SOURCE_DIR}/3rdparty/caffe/include
         /usr/local/cuda-8.0/include
         )
 
