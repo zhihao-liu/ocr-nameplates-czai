@@ -94,6 +94,10 @@ DetectedItem OcrNameplatesAlfa::detectValueOfVin() {
         sortByXMid(valueDets);
     }
 
+    if (valueDets.size() > 17) {
+        mergeOverlappedDetections(valueDets);
+    }
+
     std::string value = joinDetectedChars(valueDets);
     return DetectedItem(value, valueRect);
 }
@@ -267,7 +271,7 @@ int OcrNameplatesAlfa::estimateCharSpacing(std::vector<Detection> const& dets) {
     return OcrUtils::findItemWithMedian(spacings, std::less<int>());
 }
 
-void OcrNameplatesAlfa::addGapDetections(std::vector<Detection>& dets, cv::Rect const& roi) {
+void OcrNameplatesAlfa::addGapDetections(std::vector<Detection>& dets, cv::Rect const& roi) const {
     if (dets.empty() || dets.size() >= 17) return;
     assert(isSortedInPosition(dets));
 
@@ -309,4 +313,28 @@ void OcrNameplatesAlfa::addGapDetections(std::vector<Detection>& dets, cv::Rect 
             }
         }
     }
+}
+
+void OcrNameplatesAlfa::mergeOverlappedDetections(std::vector<Detection>& dets) {
+    if (dets.size() <= 17) return;
+
+    std::vector<double> overlaps;
+    for (auto itr = dets.begin() + 1; itr != dets.end(); ++itr) {
+        double iou = OcrUtils::computeIou((itr - 1)->getRect(), itr->getRect());
+        overlaps.push_back(iou);
+    }
+
+    double maxOverlap = overlaps[0];
+    int maxIdx = 0;
+    for (int i = 0; i < overlaps.size(); ++i) {
+        if (overlaps[i] > maxOverlap) {
+            maxOverlap = overlaps[i];
+            maxIdx = i;
+        }
+    }
+
+    int idxToErase = dets[maxIdx].getScore() > dets[maxIdx + 1].getScore() ? maxIdx + 1 : maxIdx;
+    dets.erase(dets.begin() + idxToErase);
+
+    mergeOverlappedDetections(dets);
 }
