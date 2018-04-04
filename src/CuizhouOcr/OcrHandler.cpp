@@ -14,3 +14,7 @@ OcrHandler::OcrHandler() = default;
 void OcrHandler::setImage(cv::Mat const& image) {
     _image = image.clone();
 }
+
+cv::Mat const& OcrHandler::getImage() const {
+    return _image;
+}

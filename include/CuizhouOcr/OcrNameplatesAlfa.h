@@ -14,7 +14,7 @@ namespace cuizhou {
     public:
         ~OcrNameplatesAlfa() override;
         OcrNameplatesAlfa();
-        OcrNameplatesAlfa(PVADetector* pDetectorKeys, PVADetector* pDetectorValues);
+        OcrNameplatesAlfa(PvaDetector& detectorKeys, PvaDetector& detectorValues);
 
         virtual void processImage() override;
 
@@ -24,12 +24,12 @@ namespace cuizhou {
         static int const CHAR_X_BORDER;
         static int const CHAR_Y_BORDER;
 
-        PVADetector* _pDetectorKeys;
-        PVADetector* _pDetectorValues;
-        std::map<std::string, DetectedItem> _keyDetections;
+        PvaDetector* _pDetectorKeys;
+        PvaDetector* _pDetectorValues;
+        std::map<std::string, DetectedItem> _keyDetectedItems;
 
         void detectKeys();
-        DetectedItem detectValueOfVin();
+        DetectedItem detectValueVin();
 
         void addGapDetections(std::vector<Detection>& dets, cv::Rect const& roi) const;
 

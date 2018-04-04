@@ -13,6 +13,7 @@ namespace cuizhou {
     public:
         virtual ~OcrHandler();
         void setImage(cv::Mat const& image);
+        cv::Mat const& getImage() const;
         virtual void processImage() = 0;
 
     protected:

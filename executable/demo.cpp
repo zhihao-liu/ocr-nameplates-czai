@@ -20,19 +20,19 @@ int main(int argc, char* argv[]) {
     string pathInputDir = "/home/cuizhou/lzh/data/raw-alfaromeo/";
 //    string pathInputDir = "/home/cuizhou/lzh/data/selected-test/";
 
-    string pathModelKeys = "/home/cuizhou/lzh/models/table_header_model/car_brand_iter_100000.caffemodel";
-    string pathPtKeys = "/home/cuizhou/lzh/models/table_header_model/test.prototxt";
-    vector<string> classesKeys = OcrUtils::readClassNames("/home/cuizhou/lzh/models/table_header_model/classes_name.txt");
+    string pathModelKeys = "/home/cuizhou/lzh/models/nameplate_keys_model/car_brand_iter_100000.caffemodel";
+    string pathPtKeys = "/home/cuizhou/lzh/models/nameplate_keys_model/test.prototxt";
+    vector<string> classesKeys = OcrUtils::readClassNames("/home/cuizhou/lzh/models/nameplate_keys_model/classes_name.txt");
 
-    string pathModelValues = "/home/cuizhou/lzh/models/single_char_model/alfa_engnum_char_iter_100000.caffemodel";
-    string pathPtValues = "/home/cuizhou/lzh/models/single_char_model/test.prototxt";
-    vector<string> classesChars = OcrUtils::readClassNames("/home/cuizhou/lzh/models/single_char_model/classes_name.txt");
+    string pathModelValues = "/home/cuizhou/lzh/models/nameplate_value_chars_model/alfa_engnum_char_iter_100000.caffemodel";
+    string pathPtValues = "/home/cuizhou/lzh/models/nameplate_value_chars_model/test.prototxt";
+    vector<string> classesChars = OcrUtils::readClassNames("/home/cuizhou/lzh/models/nameplate_value_chars_model/classes_name.txt");
 
-    PVADetector detectorKeys;
+    PvaDetector detectorKeys;
     detectorKeys.init(pathPtKeys, pathModelKeys, classesKeys);
     detectorKeys.setComputeMode("gpu", 0);
 
-    PVADetector detectorValues;
+    PvaDetector detectorValues;
     detectorValues.init(pathPtValues, pathModelValues, classesChars);
     detectorValues.setComputeMode("gpu", 0);
 
@@ -46,12 +46,14 @@ int main(int argc, char* argv[]) {
         Mat img = imread(pathImg);
         if (img.empty()) continue;
 
-        OcrNameplatesAlfa ocr(&detectorKeys, &detectorValues);
+        OcrNameplatesAlfa ocr(detectorKeys, detectorValues);
         ocr.setImage(img);
         ocr.processImage();
 
         InfoTable result = ocr.getResult();
-        string value = result.get("Vin").value.content;
+        auto ptrVin = result.get("Vin");
+        if (ptrVin == nullptr) continue;
+        string value = ptrVin->value.content;
 
         ++countAll;
         if (value == id) {

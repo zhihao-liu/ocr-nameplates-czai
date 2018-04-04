@@ -10,63 +10,46 @@
 using namespace cv;
 using namespace std;
 // constructor
-Detection::Detection() {
-
-}
+Detection::Detection() = default;
 
 Detection::Detection(const std::string& cls, const cv::Rect& rect, const float& score)
-    :m_cls(cls), m_rect(rect), m_score(score)
-{
+        : m_cls(cls), m_rect(rect), m_score(score) {
 
 }
 
 // copy constructor
-Detection::Detection(Detection const& detection)
-{
+Detection::Detection(Detection const& detection) {
     m_cls = detection.m_cls;
     m_rect = detection.m_rect;
     m_score = detection.m_score;
 }
+
 // set value constructor
-Detection& Detection::operator=(const Detection &detection)
-{
-    m_cls = detection.m_cls;
-    m_rect = detection.m_rect;
-    m_score = detection.m_score;
-    return *this;
-}
+Detection& Detection::operator=(const Detection& detection) = default;
 
-Detection::~Detection()
-{
+Detection::~Detection() = default;
 
-}
 //Interface
-string Detection::getClass() const
-{
+string Detection::getClass() const {
     return m_cls;
 }
 
-Rect Detection::getRect() const
-{
+Rect Detection::getRect() const {
     return m_rect;
 }
 
-float Detection::getScore() const
-{
+float Detection::getScore() const {
     return m_score;
 }
 
-void Detection::setClass(const std::string& cls)
-{
+void Detection::setClass(const std::string& cls) {
     m_cls = cls;
 }
 
-void Detection::setRect(const cv::Rect& rect)
-{
+void Detection::setRect(const cv::Rect& rect) {
     m_rect = rect;
 }
 
-void Detection::setScore(const float& score)
-{
+void Detection::setScore(const float& score) {
     m_score = score;
 }
