@@ -29,20 +29,9 @@ namespace cuizhou {
         static void validateWindow(cv::Rect& roi, cv::Mat const& img);
         static void validateWindow(cv::Rect& roi, cv::Rect const& extent);
 
-        template<typename T, typename F>
-        static T const& findItemWithMedian(std::vector<T> vec, F const& comp) {
-            std::nth_element(vec.begin(), vec.begin() + vec.size() / 2, vec.end(), comp);
-            return vec.at(vec.size() / 2);
-        };
+        template<typename T, typename F> static T const& findItemWithMedian(std::vector<T> vec, F const& comp);
 
-        template<typename T, typename F>
-        static double computeMean(std::vector<T> const& vec, F const& mapToNum) {
-            double avg = 0;
-            for (auto item: vec) {
-                avg += mapToNum(item);
-            }
-            return avg / vec.size();
-        };
+        template<typename T, typename F> static double computeMean(std::vector<T> const& vec, F const& mapToNum);
     };
 
 
@@ -55,6 +44,28 @@ namespace cuizhou {
         double a, b;
     };
 }
+
+
+using namespace cuizhou;
+
+template<typename T, typename F>
+T const& OcrUtils::findItemWithMedian(std::vector<T> vec, F const& comp) {
+    assert(!vec.empty());
+
+    std::nth_element(vec.begin(), vec.begin() + vec.size() / 2, vec.end(), comp);
+    return vec.at(vec.size() / 2);
+};
+
+template<typename T, typename F>
+double OcrUtils::computeMean(std::vector<T> const& vec, F const& mapToNum) {
+    assert(!vec.empty());
+
+    double avg = 0;
+    for (auto item: vec) {
+        avg += mapToNum(item);
+    }
+    return avg / vec.size();
+};
 
 
 #endif //CUIZHOU_OCR_OCRUTILS_H

@@ -12,9 +12,10 @@ InfoTable::~InfoTable() = default;
 InfoTable::InfoTable() = default;
 
 void InfoTable::put(std::string const& keyName, KeyValuePair const& keyValuePair) {
-    _table.insert(std::make_pair(keyName, keyValuePair));
+    _table.emplace(keyName, keyValuePair);
 }
 
-KeyValuePair const& InfoTable::get(std::string const& keyName) {
-    return _table[keyName];
+KeyValuePair const* InfoTable::get(std::string const& keyName) const{
+    auto itr = _table.find(keyName);
+    return itr == _table.end() ? nullptr : &itr->second;
 }

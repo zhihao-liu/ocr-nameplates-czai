@@ -4,13 +4,12 @@
 #include <string>
 #include <opencv2/core/core.hpp>
 
-class Detection
-{
+class Detection {
 public:
     Detection();
     Detection(const std::string& cls, const cv::Rect& rect, const float& score);
     Detection(Detection const& detection);
-    Detection& operator=(const Detection &detection);
+    Detection& operator=(const Detection& detection);
 
     ~Detection();
 
