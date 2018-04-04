@@ -31,7 +31,9 @@ namespace cuizhou {
         void detectKeys();
         DetectedItem detectValueOfVin();
 
-        void addGapDetections(std::vector<Detection>& dets, cv::Rect const& roi);
+        void addGapDetections(std::vector<Detection>& dets, cv::Rect const& roi) const;
+
+        static void mergeOverlappedDetections(std::vector<Detection>& dets);
 
         static void sortByXMid(std::vector<Detection>& dets);
         static bool isSortedByXMid(std::vector<Detection> const& dets);

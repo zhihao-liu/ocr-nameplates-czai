@@ -21,9 +21,9 @@ public:
 	std::vector<Detection> detect(cv::Mat img, std::string class_mask);
 	std::vector<Detection> detect(cv::Mat img, std::set<std::string> class_mask_set);
 	//显示函数
-	void drawBox(cv::Mat& img, std::vector<Detection> &dets);
-	void drawBox(cv::Mat& img, std::vector<Detection> &dets,std::string type);//added by myf
-	void drawBox(cv::Mat& img, std::vector<Detection> &dets,int Trans_x,int Trans_y);//added by myf
+	static void drawBox(cv::Mat& img, std::vector<Detection> &dets);
+	static void drawBox(cv::Mat& img, std::vector<Detection> &dets,std::string type); // added by myf; edited by lzh
+	static void drawBox(cv::Mat& img, std::vector<Detection> &dets,int Trans_x,int Trans_y); // added by myf; edited by lzh
 	std::vector<Detection> overThresh(int* keep, int num_out, float* sorted_pred_cls, float CONF_THRESH, std::string className);
 
 private:
