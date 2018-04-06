@@ -30,8 +30,9 @@ namespace cuizhou {
         static void validateWindow(cv::Rect& roi, cv::Rect const& extent);
 
         template<typename T, typename F> static T const& findItemWithMedian(std::vector<T> vec, F const& comp);
-
         template<typename T, typename F> static double computeMean(std::vector<T> const& vec, F const& mapToNum);
+
+        static bool isNumbericChar(std::string const& str);
     };
 
 
