@@ -144,7 +144,7 @@ bool OcrNameplatesAlfa::containsUnambiguousNumberOne(Detection const& det1, Dete
 }
 
 void OcrNameplatesAlfa::eliminateYOutliers(std::vector<Detection>& dets) {
-    if (dets.empty()) return;
+    if (dets.size() < 3) return;
 
     // remove those lies off the horizontal reference line
     int heightRef = OcrUtils::findItemWithMedian(dets, [](Detection const& det1, Detection const& det2) {
@@ -165,7 +165,7 @@ void OcrNameplatesAlfa::eliminateYOutliers(std::vector<Detection>& dets) {
 }
 
 void OcrNameplatesAlfa::eliminateOverlaps(std::vector<Detection>& dets) {
-    if (dets.size() <= 1) return;
+    if (dets.size() < 2) return;
     assert(isSortedByXMid(dets));
 
     for (auto itr = dets.begin() + 1; itr != dets.end();) {
@@ -197,6 +197,8 @@ void OcrNameplatesAlfa::eliminateOverlaps(std::vector<Detection>& dets) {
 }
 
 cv::Rect OcrNameplatesAlfa::computeExtent(std::vector<Detection> const& dets) {
+    if (dets.empty()) return cv::Rect();
+
     int left = INT_MAX, right = INT_MIN, top = INT_MAX, bottom = INT_MIN;
     for (auto const& det: dets) {
         if (det.getRect().x < left) left = det.getRect().x;
@@ -209,6 +211,8 @@ cv::Rect OcrNameplatesAlfa::computeExtent(std::vector<Detection> const& dets) {
 }
 
 double OcrNameplatesAlfa::computeCharAlignmentSlope(std::vector<Detection> const& dets) {
+    if (dets.empty()) return 0;
+
     std::vector<double> xCoords, yCoords;
     std::transform(dets.begin(), dets.end(), back_inserter(xCoords),
                    [](Detection det) { return OcrUtils::xMid(det.getRect()); });
@@ -268,7 +272,8 @@ cv::Rect& OcrNameplatesAlfa::adjustRoi(cv::Rect& roi, cv::Rect const& detsExtent
 }
 
 int OcrNameplatesAlfa::estimateCharSpacing(std::vector<Detection> const& dets) {
-    assert(dets.size() >= 2 && isSortedByXMid(dets));
+    if (dets.size() < 2) return 0;
+    assert(&& isSortedByXMid(dets));
 
     std::vector<int> spacings;
     for (auto itr = dets.begin() + 1; itr != dets.end(); ++itr) {
