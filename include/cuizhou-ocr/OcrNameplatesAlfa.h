@@ -7,6 +7,7 @@
 
 #include "OcrNameplates.h"
 #include "PvaDetector.h"
+#include "classifier.h"
 
 
 namespace cuizhou {
@@ -14,30 +15,32 @@ namespace cuizhou {
     public:
         ~OcrNameplatesAlfa() override;
         OcrNameplatesAlfa();
-        OcrNameplatesAlfa(PvaDetector& detectorKeys, PvaDetector& detectorValues);
+        OcrNameplatesAlfa(PvaDetector& detectorKeys, PvaDetector& detectorValues, Classifier& classifierChars);
 
         virtual void processImage() override;
 
     private:
-        static int const ROI_X_BORDER;
-        static int const ROI_Y_BORDER;
+        static int const WINDOW_X_BORDER;
+        static int const WINDOW_Y_BORDER;
         static int const CHAR_X_BORDER;
         static int const CHAR_Y_BORDER;
 
         PvaDetector* _pDetectorKeys;
         PvaDetector* _pDetectorValues;
+        Classifier* _pClassifierChars;
         std::map<std::string, DetectedItem> _keyDetectedItems;
 
         void detectKeys();
-        DetectedItem detectValueVin();
+        DetectedItem detectValueOfVin();
 
-        void addGapDetections(std::vector<Detection>& dets, cv::Rect const& roi) const;
-
+        void addGapDetections(std::vector<Detection>& dets, cv::Rect const& window) const;
+        void reexamineCharsWithLowConfidence(std::vector<Detection>& dets, cv::Mat const& roi) const;
         static void mergeOverlappedDetections(std::vector<Detection>& dets);
+
+        static std::string joinDetectedChars(std::vector<Detection> const& dets);
 
         static void sortByXMid(std::vector<Detection>& dets);
         static bool isSortedByXMid(std::vector<Detection> const& dets);
-        static std::string joinDetectedChars(std::vector<Detection> const& dets);
 
         static bool containsUnambiguousNumberOne(Detection const& det1, Detection const& det2);
         static void eliminateYOutliers(std::vector<Detection>& dets);
@@ -46,9 +49,9 @@ namespace cuizhou {
         static double computeCharAlignmentSlope(std::vector<Detection> const& dets);
         static int estimateCharSpacing(std::vector<Detection> const& dets);
 
-        static cv::Rect& expandRoi(cv::Rect& roi, std::vector<Detection> const& dets);
-        static bool isRoiTooLarge(cv::Rect const& roi, cv::Rect const& detsExtent);
-        static cv::Rect& adjustRoi(cv::Rect& roi, cv::Rect const& detsExtent);
+        static cv::Rect& expandWindow(cv::Rect& roi, std::vector<Detection> const& dets);
+        static bool isWindowTooLarge(cv::Rect const& roi, cv::Rect const& detsExtent);
+        static cv::Rect& adjustWindow(cv::Rect& roi, cv::Rect const& detsExtent);
 
         static cv::Rect estimateValueRectOfVin(cv::Rect const& keyRect);
     };

@@ -26,6 +26,10 @@ std::vector<std::string> OcrUtils::readClassNames(std::string const& path) {
     return classNames;
 };
 
+bool OcrUtils::isNumbericChar(std::string const& str) {
+    return str.length() == 1 && str[0] >= '0' && str[0] <= '9';
+}
+
 int OcrUtils::xMid(cv::Rect const& rect) {
     return rect.x + int(round(rect.width / 2.0));
 }

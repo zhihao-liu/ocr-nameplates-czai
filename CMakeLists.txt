@@ -5,17 +5,16 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 find_package(Boost REQUIRED)
 ## need to select your own opencv version
-find_package(OpenCV 2.4.8 REQUIRED)
+find_package(OpenCV REQUIRED)
 
 include_directories(
         /usr/include
         ${PROJECT_SOURCE_DIR}/include
         ${OpenCV_INCLUDE_DIR}
         ${PROJECT_SOURCE_DIR}/3rdparty/caffe/include
-        ${PROJECT_SOURCE_DIR}/include/CuizhouOcr
-        ${PROJECT_SOURCE_DIR}/include/PvaDetector
-        ${PROJECT_SOURCE_DIR}/include/KCF
-        ${PROJECT_SOURCE_DIR}/include/HungarianAlg
+        ${PROJECT_SOURCE_DIR}/include/googlenet
+        ${PROJECT_SOURCE_DIR}/include/cuizhou-ocr
+        ${PROJECT_SOURCE_DIR}/include/pvadetector
         /usr/local/cuda-8.0/include
         )
 
