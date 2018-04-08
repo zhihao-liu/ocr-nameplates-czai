@@ -3,6 +3,7 @@
 //
 
 #include "OcrUtils.hpp"
+#include <dirent.h>
 
 #include <opencv2/imgproc/imgproc.hpp>
 
@@ -70,7 +71,7 @@ int OcrUtils::computeSpacing(cv::Rect const& rect1, cv::Rect const& rect2) {
     return std::abs(xMid(rect1) - xMid(rect2));
 }
 
-void OcrUtils::validateWindow(cv::Rect& window, int width, int height) {
+cv::Rect& OcrUtils::validateWindow(cv::Rect& window, int width, int height) {
     if (window.x < 0) {
         window.x = 0;
     } else if (window.x >= width) {
@@ -94,16 +95,18 @@ void OcrUtils::validateWindow(cv::Rect& window, int width, int height) {
     } else if (window.y + window.height > height) {
         window.height = height - window.y;
     }
+
+    return window;
 }
 
-void OcrUtils::validateWindow(cv::Rect& roi, cv::Mat const& img) {
+cv::Rect& OcrUtils::validateWindow(cv::Rect& roi, cv::Mat const& img) {
     // ensure the roi is within the extent of the image after adjustments
-    validateWindow(roi, img.cols, img.rows);
+    return validateWindow(roi, img.cols, img.rows);
 }
 
-void OcrUtils::validateWindow(cv::Rect& roi, cv::Rect const& extent) {
+cv::Rect& OcrUtils::validateWindow(cv::Rect& roi, cv::Rect const& extent) {
     // ensure the roi is within the extent of the image after adjustments
-    validateWindow(roi, extent.width, extent.height);
+    return validateWindow(roi, extent.width, extent.height);
 }
 
 LeastSquare::LeastSquare(std::vector<double> const& x, std::vector<double> const& y) {
@@ -118,6 +121,10 @@ LeastSquare::LeastSquare(std::vector<double> const& x, std::vector<double> const
     b = (t1 * t4 - t2 * t3) / (t1 * x.size() - t2 * t2);
 }
 
-double LeastSquare::getSlope() const { return a; };
+double LeastSquare::getSlope() const {
+    return a;
+};
 
-double LeastSquare::getConstant() const { return b; };
+double LeastSquare::getConstant() const {
+    return b;
+};
