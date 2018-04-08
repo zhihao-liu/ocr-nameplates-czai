@@ -3,9 +3,10 @@
 //
 
 #include <fstream>
-#include <boost/filesystem.hpp>
+#include <chrono>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <boost/filesystem.hpp>
 #include "classifier.h"
 #include "PvaDetector.h"
 #include "OcrNameplatesAlfa.h"
@@ -23,13 +24,17 @@ int main(int argc, char* argv[]) {
     string pathInputDir = "/home/cuizhou/lzh/data/raw-alfaromeo/";
     string pathOutputDir = "/home/cuizhou/lzh/data/results-with-text/";
 
-    string modelPvaKeys = "/home/cuizhou/lzh/models/pva_keys/car_brand_iter_100000.caffemodel";
-    string ptPvaKeys = "/home/cuizhou/lzh/models/pva_keys/test.prototxt";
-    vector<string> classesPvaKeys = OcrUtils::readClassNames("/home/cuizhou/lzh/models/pva_keys/classes_name.txt");
+    string modelPvaKeys = "/home/cuizhou/lzh/models/pva_keys_compressed/car_brand_iter_100000.caffemodel";
+    string ptPvaKeys = "/home/cuizhou/lzh/models/pva_keys_compressed/test.prototxt";
+    vector<string> classesPvaKeys = OcrUtils::readClassNames("/home/cuizhou/lzh/models/pva_keys_compressed/classes_name.txt");
 
-    string modelPvaValues = "/home/cuizhou/lzh/models/pva_vin_value_chars/alfa_engnum_char_iter_100000.caffemodel";
-    string ptPvaValues = "/home/cuizhou/lzh/models/pva_vin_value_chars/test.prototxt";
-    vector<string> classesPvaValues = OcrUtils::readClassNames("/home/cuizhou/lzh/models/pva_vin_value_chars/classes_name.txt");
+    string modelPvaValues1 = "/home/cuizhou/lzh/models/pva_vin_value_chars_compressed/alfa_engnum_char_iter_100000.caffemodel";
+    string ptPvaValues1 = "/home/cuizhou/lzh/models/pva_vin_value_chars_compressed/test.prototxt";
+    vector<string> classesPvaValues1 = OcrUtils::readClassNames("/home/cuizhou/lzh/models/pva_vin_value_chars_compressed/classes_name.txt");
+
+    string modelPvaValues2 = "/home/cuizhou/lzh/models/pva_other_value_chars_compressed/alfa_char_shape_pva_iter_100000.caffemodel";
+    string ptPvaValues2 = "/home/cuizhou/lzh/models/pva_other_value_chars_compressed/test.prototxt";
+    vector<string> classesPvaValues2 = OcrUtils::readClassNames("/home/cuizhou/lzh/models/pva_other_value_chars_compressed/classes_name.txt");
 
     string modelGooglenet = "/home/cuizhou/lzh/models/googlenet_chars/model_googlenet_iter_38942.caffemodel";
     string ptGooglenet = "/home/cuizhou/lzh/models/googlenet_chars/deploy.prototxt";
@@ -40,70 +45,137 @@ int main(int argc, char* argv[]) {
     detectorKeys.init(ptPvaKeys, modelPvaKeys, classesPvaKeys);
     detectorKeys.setComputeMode("gpu", 0);
 
-    PvaDetector detectorValues;
-    detectorValues.init(ptPvaValues, modelPvaValues, classesPvaValues);
-    detectorValues.setComputeMode("gpu", 0);
+    PvaDetector detectorValues1;
+    detectorValues1.init(ptPvaValues1, modelPvaValues1, classesPvaValues1);
+    detectorValues1.setComputeMode("gpu", 0);
+
+    PvaDetector detectorValues2;
+    detectorValues2.init(ptPvaValues2, modelPvaValues2, classesPvaValues2);
+    detectorValues2.setComputeMode("gpu", 0);
 
     Classifier classifier(ptGooglenet, modelGooglenet, meanGooglenet, classesGooglenet);
 
-
-    int countAll = 0, countCorrect = 0, countShorter = 0, countLonger = 0, countWrong = 0;
+    auto start = std::chrono::system_clock::now();
+    int countAll = 0, countCorrect = 0;
 
     for (directory_iterator itr(pathInputDir); itr != directory_iterator(); ++itr) {
-        // string pathImg = "/home/cuizhou/lzh/data/raw-alfaromeo/ZAREAEBN4H7546964.jpg";
         string pathImg = itr->path().string();
+//        pathImg = "/home/cuizhou/lzh/data/raw-alfaromeo/ZAREAECN0H7548838.jpg";
         string fileName = itr->path().filename().string();
         string imgId = fileName.substr(0, fileName.length() - 4);
+
+        cout << "Processing " << imgId << "..." << endl;
 
         Mat img = imread(pathImg);
         if (img.empty()) continue;
 
-        OcrNameplatesAlfa ocr(detectorKeys, detectorValues, classifier);
+        OcrNameplatesAlfa ocr(detectorKeys, detectorValues1, detectorValues2, classifier);
         ocr.setImage(img);
         ocr.processImage();
 
         InfoTable result = ocr.getResult();
-        auto resultVin = result.get("Vin");
-        if (resultVin == nullptr) continue;
-        string valueVin = resultVin->value.content;
+        bool flag = true;
 
-       img = ocr.getImage().clone();
-
-        ++countAll;
-        if (valueVin == imgId) {
-            ++countCorrect;
-
-            if (SAVE_RESULTS) {
-                putText(img, "VIN", Point(resultVin->key.rect.x + 10, resultVin->key.rect.br().y + 15), FONT_HERSHEY_SIMPLEX, 0.7, Scalar(0, 255, 255), 2);
-                putText(img, valueVin, Point(resultVin->value.rect.x + 10, resultVin->value.rect.br().y + 15), FONT_HERSHEY_SIMPLEX, 0.7, Scalar(0, 255, 255), 2);
-                imwrite(pathOutputDir + "correct/" + imgId + "-result.jpg", img);
-            }
-        } else {
-            if (valueVin.length() == imgId.length()) {
-                ++countWrong;
-            } else if (valueVin.length() < imgId.length()) {
-                ++countShorter;
+        {
+            auto pairPtr = result.get("Vin");
+            if (pairPtr == nullptr) {
+                flag = false;
             } else {
-                ++countLonger;
-            }
-
-            if (SAVE_RESULTS) {
-                putText(img, "VIN", Point(resultVin->key.rect.x + 10, resultVin->key.rect.br().y + 15), FONT_HERSHEY_SIMPLEX, 0.7, Scalar(0, 255, 255), 2);
-                putText(img, valueVin, Point(resultVin->value.rect.x + 10, resultVin->value.rect.br().y + 15), FONT_HERSHEY_SIMPLEX, 0.7, Scalar(0, 127, 255), 2);
-                imwrite(pathOutputDir + "incorrect/" + imgId + "-result.jpg", img);
+                auto val = pairPtr->value.content;
+                if (val != imgId) flag = false;
             }
         }
 
-        cout << countCorrect << " out of " << countAll << " (" << 100 * float(countCorrect) / countAll << "%) correct."
-             << "...";
-        cout << countWrong << " out of " << countAll << " (" << 100 * float(countWrong) / countAll << "%) wrong."
-             << "...";
-        cout << countShorter << " out of " << countAll << " (" << 100 * float(countShorter) / countAll << "%) shorter."
-             << "...";
-        cout << countLonger << " out of " << countAll << " (" << 100 * float(countLonger) / countAll << "%) longer."
-             << endl;
+        {
+            auto pairPtr = result.get("MaxMassAllowed");
+            if (pairPtr == nullptr) {
+                flag = false;
+            } else {
+                auto val = pairPtr->value.content;
+                if (val != "2150" && val != "2175") flag = false;
+            }
+        }
+
+        {
+            auto pairPtr = result.get("MaxNetPowerOfEngine");
+            if (pairPtr == nullptr) {
+                flag = false;
+            } else {
+                auto val = pairPtr->value.content;
+                if (val != "147" && val != "206") flag = false;
+            }
+        }
+
+        {
+            auto pairPtr = result.get("EngineModel");
+            if (pairPtr == nullptr) {
+                flag = false;
+            } else {
+                auto val = pairPtr->value.content;
+                if (val != "55273835") flag = false;
+            }
+        }
+
+        {
+            auto pairPtr = result.get("NumPassengers");
+            if (pairPtr == nullptr) {
+                flag = false;
+            } else {
+                auto val = pairPtr->value.content;
+                if (val != "5") flag = false;
+            }
+        }
+
+        {
+            auto pairPtr = result.get("VehicleModel");
+            if (pairPtr == nullptr) {
+                flag = false;
+            } else {
+                auto val = pairPtr->value.content;
+                if (val != "AR952CA2" && val != "AR952BA2") flag = false;
+            }
+        }
+
+        {
+            auto pairPtr = result.get("EngineDisplacement");
+            if (pairPtr == nullptr) {
+                flag = false;
+            } else {
+                auto val = pairPtr->value.content;
+                if (val != "1995") flag = false;
+            }
+        }
+
+        {
+            auto pairPtr = result.get("DateOfManufacture");
+            if (pairPtr == nullptr) {
+                flag = false;
+            } else {
+                auto val = pairPtr->value.content;
+                if (val != "201703" && val != "201704" && val != "201701") flag = false;
+            }
+        }
+
+        {
+            auto pairPtr = result.get("Paint");
+            if (pairPtr == nullptr) {
+                flag = false;
+            } else {
+                auto val = pairPtr->value.content;
+                if (val.length() != 3) flag = false;
+            }
+        }
+
+        ++countAll;
+        countCorrect += flag;
+
+        cout << countCorrect << " out of " << countAll
+             << " (" << float(countCorrect) / countAll * 100  << "%) are correct." << endl;
     }
 
-    waitKey(0);
+    auto end = std::chrono::system_clock::now();
+
+    cout << "Time elapsed: " << (end - start).count() << endl;
+
     return 0;
 }

@@ -18,6 +18,18 @@ namespace cuizhou {
 
     protected:
         static std::string const CLASSNAME_VIN;
+        static std::string const CLASSNAME_MANUFACTURER;
+        static std::string const CLASSNAME_BRAND;
+        static std::string const CLASSNAME_MAX_MASS_ALLOWED;
+        static std::string const CLASSNAME_MAX_NET_POWER_OF_ENGINE;
+        static std::string const CLASSNAME_COUNTRY;
+        static std::string const CLASSNAME_FACTORY;
+        static std::string const CLASSNAME_ENGINE_MODEL;
+        static std::string const CLASSNAME_NUM_PASSENGERS;
+        static std::string const CLASSNAME_VEHICLE_MODEL;
+        static std::string const CLASSNAME_ENGINE_DISPLACEMENT;
+        static std::string const CLASSNAME_DATE_OF_MANUFACTURE;
+        static std::string const CLASSNAME_PAINT;
 
         InfoTable _result;
 
