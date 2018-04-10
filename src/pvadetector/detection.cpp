@@ -5,7 +5,7 @@
 * @Function
 */
 
-#include "Detection.h"
+#include "detection.h"
 
 using namespace cv;
 using namespace std;
@@ -18,14 +18,14 @@ Detection::Detection(const std::string& cls, const cv::Rect& rect, const float& 
 }
 
 // copy constructor
-Detection::Detection(Detection const& detection) {
-    m_cls = detection.m_cls;
-    m_rect = detection.m_rect;
-    m_score = detection.m_score;
+Detection::Detection(Detection const& Detection) {
+    m_cls = Detection.m_cls;
+    m_rect = Detection.m_rect;
+    m_score = Detection.m_score;
 }
 
 // set value constructor
-Detection& Detection::operator=(const Detection& detection) = default;
+Detection& Detection::operator=(const Detection& Detection) = default;
 
 Detection::~Detection() = default;
 

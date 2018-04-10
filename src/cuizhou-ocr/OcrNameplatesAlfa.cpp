@@ -21,18 +21,38 @@ OcrNameplatesAlfa::OcrNameplatesAlfa(PvaDetector& detectorKeys, PvaDetector& det
         : _pDetectorKeys(&detectorKeys), _pDetectorValues1(&detectorValues1), _pDetectorValues2(&detectorValues2), _pClassifierChars(&classifierChars) {}
 
 void OcrNameplatesAlfa::processImage() {
+    _result.clear();
+
+    OcrUtils::imResizeAndFill(_image, 1024, 768);
+
     detectKeys();
 
     for (auto const& keyItem: _keyDetectedItems) {
-        if (keyItem.first == "Vin") {
-            int testtest = 0;
+        if (keyItem.first == "Manufacturer") {
+            _result.put(keyItem.first, KeyValuePair({keyItem.second, {"阿尔法 罗密欧股份公司"}}));
+            continue;
+        } else if (keyItem.first == "Brand") {
+            _result.put(keyItem.first, KeyValuePair({keyItem.second, {"阿尔法 罗密欧"}}));
+            continue;
+        } else if (CLASSNAME_ENG_TO_CHN.find(keyItem.first)->second == "Country") {
+            _result.put(keyItem.first, KeyValuePair({keyItem.second, {"意大利"}}));
+            continue;
+        } else if (keyItem.first == "Factory") {
+            _result.put(keyItem.first, KeyValuePair({keyItem.second, {"FCA意大利股份公司卡西诺工厂"}}));
+            continue;
         }
+
         DetectedItem valueItem = detectValue(keyItem.first);
         _result.put(keyItem.first, KeyValuePair({keyItem.second, valueItem}));
     }
+
+//    cv::imshow("", _image);
+//    cv::waitKey(0);
 }
 
 void OcrNameplatesAlfa::detectKeys() {
+    _keyDetectedItems.clear();
+
     _pDetectorKeys->setThresh(0.5, 0.1);
 
     std::vector<Detection> keyDets = _pDetectorKeys->detect(_image);
@@ -187,13 +207,9 @@ void OcrNameplatesAlfa::eliminateYOutliers(std::vector<Detection>& dets) {
     if (dets.size() < 3) return;
 
     // remove those lies off the horizontal reference line
-    int heightRef = OcrUtils::findItemWithMedian(dets, [](Detection const& det1, Detection const& det2) {
-        return det1.getRect().height < det2.getRect().height;
-    }).getRect().height;
+    int heightRef = int(OcrUtils::findMedian(dets, [](Detection const& det){ return det.getRect().height; }));
 
-    int yMidRef = OcrUtils::yMid(OcrUtils::findItemWithMedian(dets, [](Detection const& det1, Detection const& det2) {
-        return OcrUtils::yMid(det1.getRect()) < OcrUtils::yMid(det2.getRect());
-    }).getRect());
+    int yMidRef = int(OcrUtils::findMedian(dets, [](Detection const& det){ return OcrUtils::yMid(det.getRect()); }));
 
     for (auto itr = dets.begin(); itr != dets.end();) {
         if (std::abs(OcrUtils::yMid(itr->getRect()) - yMidRef) > 0.25 * heightRef) {
@@ -321,7 +337,7 @@ int OcrNameplatesAlfa::estimateCharSpacing(std::vector<Detection> const& dets) {
         spacings.push_back(spacing);
     }
 
-    return OcrUtils::findItemWithMedian(spacings, std::less<int>());
+    return int(OcrUtils::findMedian(spacings, [](int spacing){ return spacing; }));
 }
 
 void OcrNameplatesAlfa::addGapDetections(std::vector<Detection>& dets, cv::Rect const& window) const {
@@ -673,7 +689,6 @@ void OcrNameplatesAlfa::commonDetectProcess(string& result, PvaDetector& detecto
                                             float confThresh, float iouThresh) {
     result = "";
 
-    // 检测流程 1
     vector<Detection> temp1;
     subCommonDetectProcess(detectorValues, img, window, temp1, containsLetters, confThresh, iouThresh);
 
@@ -692,12 +707,10 @@ void OcrNameplatesAlfa::commonDetectProcess(string& result, PvaDetector& detecto
             else result += det.getClass();
         }
     } else {
-        // 平移roi到中心
         isMoved = moveWindow(img, temp1, window, windowMoved);
-        // 再次检测
+
         subCommonDetectProcess(detectorValues, img, windowMoved, temp2, containsLetters, confThresh, iouThresh);
 
-        // 去除多余
         if (temp2.size() > valueLength) {
             sortByScoreDescending(temp2);
             vector<Detection> temp3;
@@ -710,7 +723,6 @@ void OcrNameplatesAlfa::commonDetectProcess(string& result, PvaDetector& detecto
             temp2.clear();
             temp2.insert(temp2.end(), temp3.begin(), temp3.end());
         }
-            // 少了 就 gap 检测
         else if (temp2.size() <= valueLength) {
             sortByXMid(temp2);
             for (auto const& det: temp2) {
@@ -725,7 +737,6 @@ void OcrNameplatesAlfa::commonDetectProcess(string& result, PvaDetector& detecto
                                             cv::Mat const& img, cv::Rect const& window, int valueLength,
                                             bool containEnglish, float conf, float iouThresh) {
     result = "";
-    // 检测流程 1
     vector<Detection> temp1;
     subCommonDetectProcess(detectorValues, img, window, temp1, containEnglish, conf, iouThresh);
 
@@ -743,13 +754,10 @@ void OcrNameplatesAlfa::commonDetectProcess(string& result, PvaDetector& detecto
             else result += det.getClass();
         }
     } else {
-        // 平移roi到中心
         isMoved = moveWindow(img, temp1, window, windowMoved);
 
-        // 再次检测
         subCommonDetectProcess(detectorValues, img, windowMoved, temp2, containEnglish, conf, iouThresh);
 
-        // 去除多余
         if (temp2.size() > valueLength) {
             sortByScoreDescending(temp2);
             vector<Detection> temp3;
@@ -772,7 +780,6 @@ void OcrNameplatesAlfa::commonDetectProcess(string& result, PvaDetector& detecto
 
     sortByXMid(temp2);
     for (auto const& det: temp2) {
-        // debug info
         cv::Mat cropImg = subImg(det.getRect()).clone();
         cv::resize(cropImg, cropImg, cv::Size(224, 224));
         vector<Prediction> pre = classifier.Classify(cropImg, 1);
@@ -792,7 +799,6 @@ void OcrNameplatesAlfa::commonDetectProcessForVehicleModel(string& result, PvaDe
                                                       cv::Mat const& img, cv::Rect const& window, int valueLength,
                                                       bool containsLetters, float conf, float iouThresh) {
     result = "";
-    // 检测流程 1
     vector<Detection> temp1;
     subCommonDetectProcess(detectorValues, img, window, temp1, containsLetters, conf, iouThresh);
 
@@ -812,13 +818,10 @@ void OcrNameplatesAlfa::commonDetectProcessForVehicleModel(string& result, PvaDe
             else result += det.getClass();
         }
     } else {
-        // 平移roi到中心
         isMoved = moveWindow(img, temp1, window, windowMoved);
 
-        // 再次检测
         subCommonDetectProcess(detectorValues, img, windowMoved, temp2, containsLetters, conf, iouThresh);
 
-        // 去除多余
         if (temp2.size() > valueLength) {
             sortByScoreDescending(temp2);
             vector<Detection> temp3;
@@ -831,7 +834,7 @@ void OcrNameplatesAlfa::commonDetectProcessForVehicleModel(string& result, PvaDe
             temp2.clear();
             temp2.insert(temp2.end(), temp3.begin(), temp3.end());
         }
-            // 少了 就 gap 检测
+
         else if (temp2.size() <= valueLength) {
             sortByXMid(temp2);
             for (auto const& det: temp2) {
@@ -844,7 +847,6 @@ void OcrNameplatesAlfa::commonDetectProcessForVehicleModel(string& result, PvaDe
 
 void OcrNameplatesAlfa::subCommonDetectProcess(PvaDetector& detectorValues, cv::Mat const& img, cv::Rect const& window, vector<Detection> &dets,
                                                bool containsLetters, float conf, float iouThresh) {
-    // 检测流程
     cv::Mat subimg;
     img(window).copyTo(subimg);
     cropImg(subimg);
@@ -852,7 +854,6 @@ void OcrNameplatesAlfa::subCommonDetectProcess(PvaDetector& detectorValues, cv::
     detectorValues.setThresh(conf,iouThresh);
     vector<Detection> valueDets = detectorValues.detect(subimg);
 
-    // 筛选数字
     vector<Detection> temp;
     if (!containsLetters){
         for(Detection const& det: valueDets){
@@ -872,25 +873,22 @@ void OcrNameplatesAlfa::subCommonDetectProcess(PvaDetector& detectorValues, cv::
 }
 
 bool OcrNameplatesAlfa::moveWindow(cv::Mat const& img, vector<Detection>& dets, cv::Rect const& window, cv::Rect& newWindow) {
-    // detections 的坐标在 1056*640 的图上
-    // window 是在原图上的 roi
-    // 返回在原图上的 roi
     int threshy = 100;
     bool needmove = false;
     newWindow = window;
     if (dets.empty()) return false;
     int cy = 0;
-    for (Detection d:dets) {
-        if (d.getRect().y < threshy || abs(d.getRect().y + d.getRect().height - 640) < threshy) {
+    for (Detection const& det:dets) {
+        if (det.getRect().y < threshy || abs(det.getRect().y + det.getRect().height - 640) < threshy) {
             needmove = true;
-            cy = d.getRect().y + d.getRect().height / 2;
+            cy = det.getRect().y + det.getRect().height / 2;
         }
     }
     if (needmove) {
         float ratio;
         if (float(window.width) / window.height > 1056.0 / 640.0) ratio = float(1056) / window.width;
         else ratio = float(640) / window.height;
-        newWindow.y = window.y + (int) ((cy - 320) / (ratio));
+        newWindow.y = window.y + int((cy - 320) / (ratio));
     }
     return needmove;
 }
@@ -905,14 +903,14 @@ void OcrNameplatesAlfa::cropImg(cv::Mat& input) {
         // h is main
         ratio = float(640) / h;
         nh = 640;
-        nw = (int) (ratio * w);
+        nw = int(ratio * w);
         cv::resize(input, input, cv::Size(nw, nh));
         cv::Rect window(528 - nw / 2, 0, nw, nh);
         input.copyTo(subImg(window));
     } else {
         // w is main
         ratio = float(1056) / w;
-        nh = (int) (h * ratio);
+        nh = int(h * ratio);
         nw = 1056;
         cv::resize(input, input, cv::Size(nw, nh));
         cv::Rect window(0, std::max(0, 320 - nh / 2), nw, nh);

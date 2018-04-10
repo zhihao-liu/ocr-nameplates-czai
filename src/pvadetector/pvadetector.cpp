@@ -6,7 +6,7 @@
 */
 
 #include <iostream>
-#include "PvaDetector.h"
+#include "pvadetector.h"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 
@@ -30,7 +30,7 @@ bool scoreCompare(const Info& info1, const Info& info2) {
 void PvaDetector::init(std::string const& def, std::string const& net,
                        std::vector<std::string> const& classes) {
     m_classes = classes;
-    //加载网络模型
+
     m_net = std::make_shared< Net<float> >(def, caffe::TEST);
     m_net->CopyTrainedLayersFrom(net);
 }
