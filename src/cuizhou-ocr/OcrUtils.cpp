@@ -9,6 +9,28 @@
 
 using namespace cuizhou;
 
+void OcrUtils::imResizeAndFill(cv::Mat& img, int newWidth, int newHeight) {
+    if (img.cols == newWidth && img.rows == newHeight) return;
+
+    float wScale = float(newWidth) / img.cols;
+    float hScale = float(newHeight) / img.rows;
+
+    if (wScale == hScale) {
+        cv::resize(img, img, cv::Size(newWidth, newHeight));
+    } else {
+        float unifiedScale = wScale < hScale ? wScale : hScale;
+
+        cv::Mat newImg(newHeight, newWidth, CV_8UC3, cv::Scalar(0, 0, 0));
+        cv::resize(img, img, cv::Size(int(unifiedScale * img.cols), int(unifiedScale * img.rows)));
+
+        int xShift = (newImg.cols - img.cols) / 2;
+        int yShift = (newImg.rows - img.rows) / 2;
+        img.copyTo(newImg(cv::Rect(xShift, yShift, img.cols, img.rows)));
+
+        img = newImg;
+    }
+}
+
 void OcrUtils::imrotate(cv::Mat& img, cv::Mat& newImg, double angleInDegree) {
     cv::Point2d pt(img.cols / 2.0, img.rows / 2.0);
     cv::Mat r = cv::getRotationMatrix2D(pt, angleInDegree, 1.0);

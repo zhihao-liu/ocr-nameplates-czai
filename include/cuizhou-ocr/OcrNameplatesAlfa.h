@@ -6,7 +6,7 @@
 #define OCR_CUIZHOU_OCRNAMEPLATESALFA_H
 
 #include "OcrNameplates.h"
-#include "PvaDetector.h"
+#include "pvadetector.h"
 #include "classifier.h"
 
 
@@ -68,7 +68,6 @@ namespace cuizhou {
         DetectedItem detectValueOfVehicleModel();
         DetectedItem detectValueOfEngineDisplacement();
         DetectedItem detectValueOfPaint();
-
         static std::string matchPaint(std::string const& str1, std::string const& str2);
 
         static void commonDetectProcess(string& result, PvaDetector& detectorValues, cv::Mat const& img, cv::Rect const& window, int valueLength, bool containsLetters = false, float conf = 0.2, float iouThresh = 0.1);

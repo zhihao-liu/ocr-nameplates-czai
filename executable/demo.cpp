@@ -8,7 +8,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <boost/filesystem.hpp>
 #include "classifier.h"
-#include "PvaDetector.h"
+#include "pvadetector.h"
 #include "OcrNameplatesAlfa.h"
 #include "OcrUtils.hpp"
 
@@ -60,7 +60,7 @@ int main(int argc, char* argv[]) {
 
     for (directory_iterator itr(pathInputDir); itr != directory_iterator(); ++itr) {
         string pathImg = itr->path().string();
-//        pathImg = "/home/cuizhou/lzh/data/raw-alfaromeo/ZAREAECN0H7548838.jpg";
+        pathImg = "/home/cuizhou/lzh/data/raw-test/ZAREAEBN0H7547187.jpg";
         string fileName = itr->path().filename().string();
         string imgId = fileName.substr(0, fileName.length() - 4);
 
@@ -73,6 +73,7 @@ int main(int argc, char* argv[]) {
         ocr.setImage(img);
         ocr.processImage();
 
+        ocr.printResultToConsoleInChinese();
         InfoTable result = ocr.getResult();
         bool flag = true;
 

@@ -6,7 +6,9 @@
 #define OCR_CUIZHOU_OCRNAMEPLATES_H
 
 #include "OcrHandler.h"
-#include "InfoTable.h"
+#include <unordered_map>
+#include <fstream>
+#include "InfoTable.hpp"
 
 
 namespace cuizhou {
@@ -15,6 +17,8 @@ namespace cuizhou {
         virtual ~OcrNameplates() override;
         virtual void processImage() override = 0;
         InfoTable const& getResult() const;
+        void printResultToConsoleInChinese() const;
+        void printResultToFileInChinese(std::ofstream& outFile) const;
 
     protected:
         static std::string const CLASSNAME_VIN;
@@ -30,6 +34,8 @@ namespace cuizhou {
         static std::string const CLASSNAME_ENGINE_DISPLACEMENT;
         static std::string const CLASSNAME_DATE_OF_MANUFACTURE;
         static std::string const CLASSNAME_PAINT;
+
+        static std::unordered_map<std::string, std::string> const CLASSNAME_ENG_TO_CHN;
 
         InfoTable _result;
 
