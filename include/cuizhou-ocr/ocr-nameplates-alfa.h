@@ -5,7 +5,7 @@
 #ifndef OCR_CUIZHOU_OCRNAMEPLATESALFA_H
 #define OCR_CUIZHOU_OCRNAMEPLATESALFA_H
 
-#include "OcrNameplates.h"
+#include "ocr-nameplates.h"
 #include "pvadetector.h"
 #include "classifier.h"
 
@@ -13,8 +13,8 @@
 namespace cuizhou {
     class OcrNameplatesAlfa final : public OcrNameplates {
     public:
-        ~OcrNameplatesAlfa() override;
-        OcrNameplatesAlfa();
+        ~OcrNameplatesAlfa() override = default;
+        OcrNameplatesAlfa() = default;
         OcrNameplatesAlfa(PvaDetector& detectorKeys, PvaDetector& detectorValues1, PvaDetector& detectorValues2, Classifier& classifierChars);
 
         virtual void processImage() override;
@@ -24,14 +24,16 @@ namespace cuizhou {
         static int const WINDOW_Y_BORDER;
         static int const CHAR_X_BORDER;
         static int const CHAR_Y_BORDER;
+        static std::vector<std::string> const PAINT_CANDIDATES;
 
-        PvaDetector* _pDetectorKeys;
-        PvaDetector* _pDetectorValues1; // used for Vin and NumPassengers
-        PvaDetector* _pDetectorValues2; // used for other values
-        Classifier* _pClassifierChars;
-        std::map<std::string, DetectedItem> _keyDetectedItems;
+        PvaDetector* pDetectorKeys_;
+        PvaDetector* pDetectorValuesVin_; // used for VIN and NumPassengers
+        PvaDetector* pDetectorValuesOther_; // used for other values
+        Classifier* pClassifierChars_;
+        std::map<std::string, DetectedItem> keyDetectedItems_;
 
         void detectKeys();
+        void adaptiveRotation();
         DetectedItem detectValue(std::string const& keyName);
         DetectedItem detectValueOfVin();
 
@@ -59,6 +61,9 @@ namespace cuizhou {
 
         static cv::Rect estimateValueRectOfVin(cv::Rect const& keyRect);
 
+        static std::string matchPaint(std::string const& str);
+        static std::string matchPaintTemplated(std::string const& str);
+
         // -------- added by WRZ ------- //
         DetectedItem detectValueOfMaxMassAllowed();
         DetectedItem detectValueOfDateOfManufacture();
@@ -68,7 +73,6 @@ namespace cuizhou {
         DetectedItem detectValueOfVehicleModel();
         DetectedItem detectValueOfEngineDisplacement();
         DetectedItem detectValueOfPaint();
-        static std::string matchPaint(std::string const& str1, std::string const& str2);
 
         static void commonDetectProcess(string& result, PvaDetector& detectorValues, cv::Mat const& img, cv::Rect const& window, int valueLength, bool containsLetters = false, float conf = 0.2, float iouThresh = 0.1);
         static void commonDetectProcess(string& result, PvaDetector& detectorValues, Classifier& classifier, cv::Mat const& img, cv::Rect const& window, int valueLength, bool containsLetters = false, float conf = 0.2, float iouThresh=0.1);

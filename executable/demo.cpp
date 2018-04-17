@@ -9,8 +9,8 @@
 #include <boost/filesystem.hpp>
 #include "classifier.h"
 #include "pvadetector.h"
-#include "OcrNameplatesAlfa.h"
-#include "OcrUtils.hpp"
+#include "ocr-nameplates-alfa.h"
+#include "ocr-utils.hpp"
 
 #define SAVE_RESULTS 1
 
@@ -21,37 +21,37 @@ int main(int argc, char* argv[]) {
     using namespace cuizhou;
     using namespace boost::filesystem;
 
-    string pathInputDir = "/home/cuizhou/lzh/data/raw-alfaromeo/";
-    string pathOutputDir = "/home/cuizhou/lzh/data/results-with-text/";
+    string pathInputDir = "/Users/liuzhihao/Desktop/OCR/data/alfa/raw-alfaromeo";
+    string pathOutputDir = "/Users/liuzhihao/Desktop/OCR/data/alfa/results";
 
-    string modelPvaKeys = "/home/cuizhou/lzh/models/pva_keys_compressed/car_brand_iter_100000.caffemodel";
-    string ptPvaKeys = "/home/cuizhou/lzh/models/pva_keys_compressed/test.prototxt";
-    vector<string> classesPvaKeys = OcrUtils::readClassNames("/home/cuizhou/lzh/models/pva_keys_compressed/classes_name.txt");
+    string modelPvaKeys = "/Users/liuzhihao/Dropbox/Advancement/Internship Cuizhou/OCR Nameplates/Models AlfaRomeo/pva_compressed/pva_keys/car_brand_iter_100000.caffemodel";
+    string ptPvaKeys = "/Users/liuzhihao/Dropbox/Advancement/Internship Cuizhou/OCR Nameplates/Models AlfaRomeo/pva_compressed/pva_keys/test.prototxt";
+    vector<string> classesPvaKeys = OcrUtils::readClassNames("/Users/liuzhihao/Dropbox/Advancement/Internship Cuizhou/OCR Nameplates/Models AlfaRomeo/pva_compressed/pva_keys/classes_name.txt");
 
-    string modelPvaValues1 = "/home/cuizhou/lzh/models/pva_vin_value_chars_compressed/alfa_engnum_char_iter_100000.caffemodel";
-    string ptPvaValues1 = "/home/cuizhou/lzh/models/pva_vin_value_chars_compressed/test.prototxt";
-    vector<string> classesPvaValues1 = OcrUtils::readClassNames("/home/cuizhou/lzh/models/pva_vin_value_chars_compressed/classes_name.txt");
+    string modelPvaValues1 = "/Users/liuzhihao/Dropbox/Advancement/Internship Cuizhou/OCR Nameplates/Models AlfaRomeo/pva_compressed/pva_vin_value_chars/alfa_engnum_char_iter_100000.caffemodel";
+    string ptPvaValues1 = "/Users/liuzhihao/Dropbox/Advancement/Internship Cuizhou/OCR Nameplates/Models AlfaRomeo/pva_compressed/pva_vin_value_chars/test.prototxt";
+    vector<string> classesPvaValues1 = OcrUtils::readClassNames("/Users/liuzhihao/Dropbox/Advancement/Internship Cuizhou/OCR Nameplates/Models AlfaRomeo/pva_compressed/pva_vin_value_chars/classes_name.txt");
 
-    string modelPvaValues2 = "/home/cuizhou/lzh/models/pva_other_value_chars_compressed/alfa_char_shape_pva_iter_100000.caffemodel";
-    string ptPvaValues2 = "/home/cuizhou/lzh/models/pva_other_value_chars_compressed/test.prototxt";
-    vector<string> classesPvaValues2 = OcrUtils::readClassNames("/home/cuizhou/lzh/models/pva_other_value_chars_compressed/classes_name.txt");
+    string modelPvaValues2 = "/Users/liuzhihao/Dropbox/Advancement/Internship Cuizhou/OCR Nameplates/Models AlfaRomeo/pva_compressed/pva_other_value_chars/alfa_char_shape_pva_iter_100000.caffemodel";
+    string ptPvaValues2 = "/Users/liuzhihao/Dropbox/Advancement/Internship Cuizhou/OCR Nameplates/Models AlfaRomeo/pva_compressed/pva_other_value_chars/test.prototxt";
+    vector<string> classesPvaValues2 = OcrUtils::readClassNames("/Users/liuzhihao/Dropbox/Advancement/Internship Cuizhou/OCR Nameplates/Models AlfaRomeo/pva_compressed/pva_other_value_chars/classes_name.txt");
 
-    string modelGooglenet = "/home/cuizhou/lzh/models/googlenet_chars/model_googlenet_iter_38942.caffemodel";
-    string ptGooglenet = "/home/cuizhou/lzh/models/googlenet_chars/deploy.prototxt";
-    string meanGooglenet = "/home/cuizhou/lzh/models/googlenet_chars/mean.binaryproto";
-    string classesGooglenet = "/home/cuizhou/lzh/models/googlenet_chars/classname.txt";
+    string modelGooglenet = "/Users/liuzhihao/Dropbox/Advancement/Internship Cuizhou/OCR Nameplates/Models AlfaRomeo/googlenet_chars/model_googlenet_iter_38942.caffemodel";
+    string ptGooglenet = "/Users/liuzhihao/Dropbox/Advancement/Internship Cuizhou/OCR Nameplates/Models AlfaRomeo/googlenet_chars/deploy.prototxt";
+    string meanGooglenet = "/Users/liuzhihao/Dropbox/Advancement/Internship Cuizhou/OCR Nameplates/Models AlfaRomeo/googlenet_chars/mean.binaryproto";
+    string classesGooglenet = "/Users/liuzhihao/Dropbox/Advancement/Internship Cuizhou/OCR Nameplates/Models AlfaRomeo/googlenet_chars/classname.txt";
 
     PvaDetector detectorKeys;
     detectorKeys.init(ptPvaKeys, modelPvaKeys, classesPvaKeys);
-    detectorKeys.setComputeMode("gpu", 0);
+    detectorKeys.setComputeMode("cpu", 0);
 
     PvaDetector detectorValues1;
     detectorValues1.init(ptPvaValues1, modelPvaValues1, classesPvaValues1);
-    detectorValues1.setComputeMode("gpu", 0);
+    detectorValues1.setComputeMode("cpu", 0);
 
     PvaDetector detectorValues2;
     detectorValues2.init(ptPvaValues2, modelPvaValues2, classesPvaValues2);
-    detectorValues2.setComputeMode("gpu", 0);
+    detectorValues2.setComputeMode("cpu", 0);
 
     Classifier classifier(ptGooglenet, modelGooglenet, meanGooglenet, classesGooglenet);
 
@@ -60,7 +60,6 @@ int main(int argc, char* argv[]) {
 
     for (directory_iterator itr(pathInputDir); itr != directory_iterator(); ++itr) {
         string pathImg = itr->path().string();
-        pathImg = "/home/cuizhou/lzh/data/raw-test/ZAREAEBN0H7547187.jpg";
         string fileName = itr->path().filename().string();
         string imgId = fileName.substr(0, fileName.length() - 4);
 
@@ -74,104 +73,106 @@ int main(int argc, char* argv[]) {
         ocr.processImage();
 
         ocr.printResultToConsoleInChinese();
-        InfoTable result = ocr.getResult();
-        bool flag = true;
+        imshow("", ocr.image());
+        waitKey(0);
+//        InfoTable result = ocr.result();
 
-        {
-            auto pairPtr = result.get("Vin");
-            if (pairPtr == nullptr) {
-                flag = false;
-            } else {
-                auto val = pairPtr->value.content;
-                if (val != imgId) flag = false;
-            }
-        }
+//        bool flag = true;
+//        {
+//            auto pairPtr = result.get("Vin");
+//            if (pairPtr == nullptr) {
+//                flag = false;
+//            } else {
+//                auto val = pairPtr->value.content;
+//                if (val != imgId) flag = false;
+//            }
+//        }
+//
+//        {
+//            auto pairPtr = result.get("MaxMassAllowed");
+//            if (pairPtr == nullptr) {
+//                flag = false;
+//            } else {
+//                auto val = pairPtr->value.content;
+//                if (val != "2150" && val != "2175") flag = false;
+//            }
+//        }
+//
+//        {
+//            auto pairPtr = result.get("MaxNetPowerOfEngine");
+//            if (pairPtr == nullptr) {
+//                flag = false;
+//            } else {
+//                auto val = pairPtr->value.content;
+//                if (val != "147" && val != "206") flag = false;
+//            }
+//        }
+//
+//        {
+//            auto pairPtr = result.get("EngineModel");
+//            if (pairPtr == nullptr) {
+//                flag = false;
+//            } else {
+//                auto val = pairPtr->value.content;
+//                if (val != "55273835") flag = false;
+//            }
+//        }
+//
+//        {
+//            auto pairPtr = result.get("NumPassengers");
+//            if (pairPtr == nullptr) {
+//                flag = false;
+//            } else {
+//                auto val = pairPtr->value.content;
+//                if (val != "5") flag = false;
+//            }
+//        }
+//
+//        {
+//            auto pairPtr = result.get("VehicleModel");
+//            if (pairPtr == nullptr) {
+//                flag = false;
+//            } else {
+//                auto val = pairPtr->value.content;
+//                if (val != "AR952CA2" && val != "AR952BA2") flag = false;
+//            }
+//        }
+//
+//        {
+//            auto pairPtr = result.get("EngineDisplacement");
+//            if (pairPtr == nullptr) {
+//                flag = false;
+//            } else {
+//                auto val = pairPtr->value.content;
+//                if (val != "1995") flag = false;
+//            }
+//        }
+//
+//        {
+//            auto pairPtr = result.get("DateOfManufacture");
+//            if (pairPtr == nullptr) {
+//                flag = false;
+//            } else {
+//                auto val = pairPtr->value.content;
+//                if (val != "201703" && val != "201704" && val != "201701") flag = false;
+//            }
+//        }
+//
+//        {
+//            auto pairPtr = result.get("Paint");
+//            if (pairPtr == nullptr) {
+//                flag = false;
+//            } else {
+//                auto val = pairPtr->value.content;
+//                if (val.length() != 3) flag = false;
+//            }
+//        }
 
-        {
-            auto pairPtr = result.get("MaxMassAllowed");
-            if (pairPtr == nullptr) {
-                flag = false;
-            } else {
-                auto val = pairPtr->value.content;
-                if (val != "2150" && val != "2175") flag = false;
-            }
-        }
+//        ++countAll;
+//        countCorrect += flag;
 
-        {
-            auto pairPtr = result.get("MaxNetPowerOfEngine");
-            if (pairPtr == nullptr) {
-                flag = false;
-            } else {
-                auto val = pairPtr->value.content;
-                if (val != "147" && val != "206") flag = false;
-            }
-        }
-
-        {
-            auto pairPtr = result.get("EngineModel");
-            if (pairPtr == nullptr) {
-                flag = false;
-            } else {
-                auto val = pairPtr->value.content;
-                if (val != "55273835") flag = false;
-            }
-        }
-
-        {
-            auto pairPtr = result.get("NumPassengers");
-            if (pairPtr == nullptr) {
-                flag = false;
-            } else {
-                auto val = pairPtr->value.content;
-                if (val != "5") flag = false;
-            }
-        }
-
-        {
-            auto pairPtr = result.get("VehicleModel");
-            if (pairPtr == nullptr) {
-                flag = false;
-            } else {
-                auto val = pairPtr->value.content;
-                if (val != "AR952CA2" && val != "AR952BA2") flag = false;
-            }
-        }
-
-        {
-            auto pairPtr = result.get("EngineDisplacement");
-            if (pairPtr == nullptr) {
-                flag = false;
-            } else {
-                auto val = pairPtr->value.content;
-                if (val != "1995") flag = false;
-            }
-        }
-
-        {
-            auto pairPtr = result.get("DateOfManufacture");
-            if (pairPtr == nullptr) {
-                flag = false;
-            } else {
-                auto val = pairPtr->value.content;
-                if (val != "201703" && val != "201704" && val != "201701") flag = false;
-            }
-        }
-
-        {
-            auto pairPtr = result.get("Paint");
-            if (pairPtr == nullptr) {
-                flag = false;
-            } else {
-                auto val = pairPtr->value.content;
-                if (val.length() != 3) flag = false;
-            }
-        }
-
-        ++countAll;
-        countCorrect += flag;
-
-        cout << countCorrect << " out of " << countAll
-             << " (" << float(countCorrect) / countAll * 100  << "%) are correct." << endl;
+//        cout << countCorrect << " out of " << countAll
+//             << " (" << float(countCorrect) / countAll * 100  << "%) are correct." << endl;
     }
 
     auto end = std::chrono::system_clock::now();

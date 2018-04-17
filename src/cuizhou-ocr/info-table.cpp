@@ -2,14 +2,16 @@
 // Created by Zhihao Liu on 18-4-4.
 //
 
-#include "InfoTable.hpp"
+#include "info-table.hpp"
 
 
-using namespace cuizhou;
+namespace cuizhou {
 
-InfoTable::~InfoTable() = default;
+DetectedItem::DetectedItem(std::string const& _content, cv::Rect const& _rect)
+        : content(_content), rect(_rect) {}
 
-InfoTable::InfoTable() = default;
+KeyValuePair::KeyValuePair(DetectedItem const& _key, DetectedItem const& _value)
+        : key(_key), value(_value) {}
 
 void InfoTable::put(std::string const& keyName, KeyValuePair const& keyValuePair) {
     _table.emplace(keyName, keyValuePair);
@@ -23,3 +25,5 @@ KeyValuePair const* InfoTable::get(std::string const& keyName) const{
 void InfoTable::clear() {
     _table.clear();
 }
+
+} // end namespace cuizhou

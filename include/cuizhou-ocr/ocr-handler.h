@@ -5,21 +5,21 @@
 #ifndef OCR_CUIZHOU_OCRHANDLER_H
 #define OCR_CUIZHOU_OCRHANDLER_H
 
-#include "opencv2/core/core.hpp"
+#include <opencv2/core/core.hpp>
 
 
 namespace cuizhou {
     class OcrHandler {
     public:
-        virtual ~OcrHandler();
+        virtual ~OcrHandler() = default;
         void setImage(cv::Mat const& image);
-        cv::Mat const& getImage() const;
+        cv::Mat const& image() const;
         virtual void processImage() = 0;
 
     protected:
-        cv::Mat _image;
+        cv::Mat image_;
 
-        OcrHandler();
+        OcrHandler() = default;
     };
 }
 

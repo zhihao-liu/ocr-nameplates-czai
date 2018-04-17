@@ -27,7 +27,7 @@ Classifier::Classifier(const string& model_file,
     input_geometry_ = cv::Size(input_layer->width(), input_layer->height());
 
     /* Load the binaryproto mean file. */
-    SetMean(mean_file);
+    setMean(mean_file);
 
     /* Load labels. */
     std::ifstream labels(label_file.c_str());
@@ -60,8 +60,8 @@ static std::vector<int> Argmax(const std::vector<float>& v, int N) {
 }
 
 /* Return the top N predictions. */
-std::vector<Prediction> Classifier::Classify(const cv::Mat& img, int N) {
-    std::vector<float> output = Predict(img);
+std::vector<Prediction> Classifier::classify(const cv::Mat &img, int N) {
+    std::vector<float> output = predict(img);
 
     N = std::min<int>(labels_.size(), N);
     std::vector<int> maxN = Argmax(output, N);
@@ -75,7 +75,7 @@ std::vector<Prediction> Classifier::Classify(const cv::Mat& img, int N) {
 }
 
 /* Load the mean file in binaryproto format. */
-void Classifier::SetMean(const string& mean_file) {
+void Classifier::setMean(const string &mean_file) {
     BlobProto blob_proto;
     ReadProtoFromBinaryFileOrDie(mean_file.c_str(), &blob_proto);
 
@@ -105,7 +105,7 @@ void Classifier::SetMean(const string& mean_file) {
     mean_ = cv::Mat(input_geometry_, mean.type(), channel_mean);
 }
 
-std::vector<float> Classifier::Predict(const cv::Mat& img) {
+std::vector<float> Classifier::predict(const cv::Mat &img) {
     Blob<float>* input_layer = net_->input_blobs()[0];
     input_layer->Reshape(1, num_channels_,
                          input_geometry_.height, input_geometry_.width);
@@ -113,9 +113,9 @@ std::vector<float> Classifier::Predict(const cv::Mat& img) {
     net_->Reshape();
 
     std::vector<cv::Mat> input_channels;
-    WrapInputLayer(&input_channels);
+    wrapInputLayer(&input_channels);
 
-    Preprocess(img, &input_channels);
+    preprocess(img, &input_channels);
 
     net_->Forward();
 
@@ -131,7 +131,7 @@ std::vector<float> Classifier::Predict(const cv::Mat& img) {
  * don't need to rely on cudaMemcpy2D. The last preprocessing
  * operation will write the separate channels directly to the input
  * layer. */
-void Classifier::WrapInputLayer(std::vector<cv::Mat>* input_channels) {
+void Classifier::wrapInputLayer(std::vector<cv::Mat> *input_channels) {
     Blob<float>* input_layer = net_->input_blobs()[0];
 
     int width = input_layer->width();
@@ -144,8 +144,8 @@ void Classifier::WrapInputLayer(std::vector<cv::Mat>* input_channels) {
     }
 }
 
-void Classifier::Preprocess(const cv::Mat& img,
-                            std::vector<cv::Mat>* input_channels) {
+void Classifier::preprocess(const cv::Mat &img,
+                            std::vector<cv::Mat> *input_channels) {
     /* Convert the input image to the input image format of the network. */
     cv::Mat sample;
     if (img.channels() == 3 && num_channels_ == 1)

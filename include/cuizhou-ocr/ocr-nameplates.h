@@ -5,18 +5,18 @@
 #ifndef OCR_CUIZHOU_OCRNAMEPLATES_H
 #define OCR_CUIZHOU_OCRNAMEPLATES_H
 
-#include "OcrHandler.h"
+#include "ocr-handler.h"
 #include <unordered_map>
 #include <fstream>
-#include "InfoTable.hpp"
+#include "info-table.hpp"
 
 
 namespace cuizhou {
     class OcrNameplates : public OcrHandler {
     public:
-        virtual ~OcrNameplates() override;
+        virtual ~OcrNameplates() override = default;
         virtual void processImage() override = 0;
-        InfoTable const& getResult() const;
+        InfoTable const& result() const;
         void printResultToConsoleInChinese() const;
         void printResultToFileInChinese(std::ofstream& outFile) const;
 
@@ -37,9 +37,9 @@ namespace cuizhou {
 
         static std::unordered_map<std::string, std::string> const CLASSNAME_ENG_TO_CHN;
 
-        InfoTable _result;
+        InfoTable result_;
 
-        OcrNameplates();
+        OcrNameplates() = default;
     };
 }
 

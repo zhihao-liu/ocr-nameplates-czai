@@ -2,8 +2,8 @@
 // Created by Zhihao Liu on 18-4-4.
 //
 
-#include "OcrNameplatesAlfa.h"
-#include "OcrUtils.hpp"
+#include "ocr-nameplates-alfa.h"
+#include "ocr-utils.hpp"
 
 
 using namespace cuizhou;
@@ -13,53 +13,50 @@ int const OcrNameplatesAlfa::WINDOW_Y_BORDER = 4;
 int const OcrNameplatesAlfa::CHAR_X_BORDER = 2;
 int const OcrNameplatesAlfa::CHAR_Y_BORDER = 1;
 
-OcrNameplatesAlfa::~OcrNameplatesAlfa() = default;
-
-OcrNameplatesAlfa::OcrNameplatesAlfa() = default;
+std::vector<std::string> const OcrNameplatesAlfa::PAINT_CANDIDATES = {"414", "361", "217", "248", "092", "093", "035", "318", "408", "409", "620"};
 
 OcrNameplatesAlfa::OcrNameplatesAlfa(PvaDetector& detectorKeys, PvaDetector& detectorValues1, PvaDetector& detectorValues2, Classifier& classifierChars)
-        : _pDetectorKeys(&detectorKeys), _pDetectorValues1(&detectorValues1), _pDetectorValues2(&detectorValues2), _pClassifierChars(&classifierChars) {}
+        : pDetectorKeys_(&detectorKeys), pDetectorValuesVin_(&detectorValues1), pDetectorValuesOther_(&detectorValues2), pClassifierChars_(&classifierChars) {}
 
 void OcrNameplatesAlfa::processImage() {
-    _result.clear();
+    result_.clear();
 
-    OcrUtils::imResizeAndFill(_image, 1024, 768);
+    OcrUtils::imResizeAndFill(image_, 1024, 768);
 
     detectKeys();
+    adaptiveRotation();
 
-    for (auto const& keyItem: _keyDetectedItems) {
+    for (auto const& keyItem: keyDetectedItems_) {
+        DetectedItem valueItem;
         if (keyItem.first == "Manufacturer") {
-            _result.put(keyItem.first, KeyValuePair({keyItem.second, {"阿尔法 罗密欧股份公司"}}));
-            continue;
+            valueItem = DetectedItem("阿尔法 罗密欧股份公司", cv::Rect());
         } else if (keyItem.first == "Brand") {
-            _result.put(keyItem.first, KeyValuePair({keyItem.second, {"阿尔法 罗密欧"}}));
-            continue;
-        } else if (CLASSNAME_ENG_TO_CHN.find(keyItem.first)->second == "Country") {
-            _result.put(keyItem.first, KeyValuePair({keyItem.second, {"意大利"}}));
-            continue;
+            valueItem = DetectedItem("阿尔法 罗密欧", cv::Rect());
+        } else if (keyItem.first == "Country") {
+            valueItem = DetectedItem("意大利", cv::Rect());
         } else if (keyItem.first == "Factory") {
-            _result.put(keyItem.first, KeyValuePair({keyItem.second, {"FCA意大利股份公司卡西诺工厂"}}));
-            continue;
+            valueItem = DetectedItem("FCA意大利股份公司卡西诺工厂", cv::Rect());
+        } else {
+            valueItem = detectValue(keyItem.first);
         }
 
-        DetectedItem valueItem = detectValue(keyItem.first);
-        _result.put(keyItem.first, KeyValuePair({keyItem.second, valueItem}));
+        result_.put(keyItem.first, KeyValuePair(keyItem.second, valueItem));
     }
 
-//    cv::imshow("", _image);
+//    cv::imshow("", image_);
 //    cv::waitKey(0);
 }
 
 void OcrNameplatesAlfa::detectKeys() {
-    _keyDetectedItems.clear();
+    keyDetectedItems_.clear();
 
-    _pDetectorKeys->setThresh(0.5, 0.1);
+    pDetectorKeys_->setThresh(0.5, 0.1);
 
-    std::vector<Detection> keyDets = _pDetectorKeys->detect(_image);
+    std::vector<Detection> keyDets = pDetectorKeys_->detect(image_);
     for (auto const& keyDet: keyDets) {
         std::string keyName = keyDet.getClass();
         DetectedItem detectedItem = {keyName, keyDet.getRect()};
-        _keyDetectedItems.emplace(keyName, detectedItem);
+        keyDetectedItems_.emplace(keyName, detectedItem);
     }
 }
 
@@ -87,15 +84,15 @@ DetectedItem OcrNameplatesAlfa::detectValue(std::string const& keyName) {
     return DetectedItem();
 }
 
-DetectedItem OcrNameplatesAlfa::detectValueOfVin() {
-    auto itrKeyVin = _keyDetectedItems.find(CLASSNAME_VIN);
-    if (itrKeyVin == _keyDetectedItems.end()) return DetectedItem();
+void OcrNameplatesAlfa::adaptiveRotation() {
+    auto itrKeyVin = keyDetectedItems_.find(CLASSNAME_VIN);
+    if (itrKeyVin == keyDetectedItems_.end()) return;
 
-    _pDetectorValues1->setThresh(0.05, 0.3);
+    pDetectorValuesVin_->setThresh(0.05, 0.3);
 
     cv::Rect keyRect = itrKeyVin->second.rect;
     cv::Rect valueRect = estimateValueRectOfVin(keyRect);
-    std::vector<Detection> valueDets = _pDetectorValues1->detect(_image(valueRect));
+    std::vector<Detection> valueDets = pDetectorValuesVin_->detect(image_(valueRect));
 
     sortByXMid(valueDets);
     eliminateYOutliers(valueDets);
@@ -104,26 +101,30 @@ DetectedItem OcrNameplatesAlfa::detectValueOfVin() {
     double slope = computeCharAlignmentSlope(valueDets);
     if (std::abs(slope) > 0.025) {
         double angle = std::atan(slope) / CV_PI * 180;
-        OcrUtils::imrotate(_image, _image, angle);
-        detectKeys();
-
-        itrKeyVin = _keyDetectedItems.find(CLASSNAME_VIN);
-        if (itrKeyVin == _keyDetectedItems.end()) return DetectedItem();
-
-        keyRect = itrKeyVin->second.rect;
-        valueRect = estimateValueRectOfVin(keyRect);
-        valueDets = _pDetectorValues1->detect(_image(valueRect));
-
-        sortByXMid(valueDets);
-        eliminateYOutliers(valueDets);
-        eliminateOverlaps(valueDets);
+        OcrUtils::imrotate(image_, image_, angle);
+        detectKeys(); // update detections of keys
     }
+}
+
+DetectedItem OcrNameplatesAlfa::detectValueOfVin() {
+    auto itrKeyVin = keyDetectedItems_.find(CLASSNAME_VIN);
+    if (itrKeyVin == keyDetectedItems_.end()) return DetectedItem();
+
+    pDetectorValuesVin_->setThresh(0.05, 0.3);
+
+    cv::Rect keyRect = itrKeyVin->second.rect;
+    cv::Rect valueRect = estimateValueRectOfVin(keyRect);
+    std::vector<Detection> valueDets = pDetectorValuesVin_->detect(image_(valueRect));
+
+    sortByXMid(valueDets);
+    eliminateYOutliers(valueDets);
+    eliminateOverlaps(valueDets);
 
     // second round in the network
     adjustWindow(valueRect, computeExtent(valueDets));
     expandWindow(valueRect, valueDets);
-    OcrUtils::validateWindow(valueRect, _image);
-    valueDets = _pDetectorValues1->detect(_image(valueRect));
+    OcrUtils::validateWindow(valueRect, image_);
+    valueDets = pDetectorValuesVin_->detect(image_(valueRect));
 
     sortByXMid(valueDets);
     eliminateYOutliers(valueDets);
@@ -133,8 +134,8 @@ DetectedItem OcrNameplatesAlfa::detectValueOfVin() {
     if (isWindowTooLarge(valueRect, detsExtent)) {
         // third round in the network
         adjustWindow(valueRect, detsExtent);
-        OcrUtils::validateWindow(valueRect, _image);
-        valueDets = _pDetectorValues1->detect(_image(valueRect));
+        OcrUtils::validateWindow(valueRect, image_);
+        valueDets = pDetectorValuesVin_->detect(image_(valueRect));
 
         sortByXMid(valueDets);
         eliminateYOutliers(valueDets);
@@ -151,10 +152,10 @@ DetectedItem OcrNameplatesAlfa::detectValueOfVin() {
         mergeOverlappedDetections(valueDets);
     }
 
-    reexamineCharsWithLowConfidence(valueDets, _image(valueRect));
+    reexamineCharsWithLowConfidence(valueDets, image_(valueRect));
 
     std::string value = joinDetectedChars(valueDets);
-    return {value, valueRect};
+    return DetectedItem(value, valueRect);
 }
 
 cv::Rect OcrNameplatesAlfa::estimateValueRectOfVin(cv::Rect const& keyRect) {
@@ -365,12 +366,12 @@ void OcrNameplatesAlfa::addGapDetections(std::vector<Detection>& dets, cv::Rect 
             gapRect.width = gapW;
             gapRect.height = gapH;
 
-            OcrUtils::validateWindow(gapRect, _image);
+            OcrUtils::validateWindow(gapRect, image_);
             cv::Mat gapExpanded(gapRect.height, gapRect.width * 10, CV_8UC3, cv::Scalar(0, 0, 0));
             cv::Rect expandedCenter(cv::Point(gapExpanded.cols / 2 - gapRect.width/2, 0), gapRect.size());
 
-            _image(gapRect).copyTo(gapExpanded(expandedCenter));
-            std::vector<Detection> gapDets = _pDetectorValues1->detect(gapExpanded);
+            image_(gapRect).copyTo(gapExpanded(expandedCenter));
+            std::vector<Detection> gapDets = pDetectorValuesVin_->detect(gapExpanded);
 
             if (!gapDets.empty()) {
                 gapRect.x = gapX;
@@ -393,7 +394,7 @@ void OcrNameplatesAlfa::reexamineCharsWithLowConfidence(std::vector<Detection>& 
         if (!OcrUtils::isNumbericChar(det.getClass())) continue;
         if (det.getScore() >= 0.8) continue;
 
-        vector<Prediction> pres = _pClassifierChars->Classify(roi(det.getRect()), 1);
+        vector<Prediction> pres = pClassifierChars_->classify(roi(det.getRect()), 1);
         if (pres[0].second > 0.9) {
             det.setClass(pres[0].first);
             det.setScore(pres[0].second);
@@ -428,10 +429,10 @@ void OcrNameplatesAlfa::mergeOverlappedDetections(std::vector<Detection>& dets) 
 // -------- added by WRZ -------- //
 
 DetectedItem OcrNameplatesAlfa::detectValueOfMaxMassAllowed() {
-    auto itrKey = _keyDetectedItems.find(CLASSNAME_MAX_MASS_ALLOWED);
-    if (itrKey == _keyDetectedItems.end()) return DetectedItem();
+    auto itrKey = keyDetectedItems_.find(CLASSNAME_MAX_MASS_ALLOWED);
+    if (itrKey == keyDetectedItems_.end()) return DetectedItem();
 
-    _pDetectorValues2->setThresh(0.05, 0.3);
+    pDetectorValuesOther_->setThresh(0.05, 0.3);
     cv::Rect keyRect = itrKey->second.rect;
 
     int x, y, w, h;
@@ -440,20 +441,20 @@ DetectedItem OcrNameplatesAlfa::detectValueOfMaxMassAllowed() {
     w = std::max(int(keyRect.width * 0.1), 95);
     h = std::max(int(keyRect.height * 1), 45);
     cv::Rect window(x, y, std::max(0, w), std::max(0, h));
-    OcrUtils::validateWindow(window, _image);
+    OcrUtils::validateWindow(window, image_);
 
     std::string valueContent;
     int valueLength = 4;
-    commonDetectProcess(valueContent, *_pDetectorValues2, _image, window, valueLength);
+    commonDetectProcess(valueContent, *pDetectorValuesOther_, image_, window, valueLength);
 
-    return {valueContent, window};
+    return DetectedItem(valueContent, window);
 }
 
 DetectedItem OcrNameplatesAlfa::detectValueOfDateOfManufacture() {
-    auto itrKey = _keyDetectedItems.find(CLASSNAME_DATE_OF_MANUFACTURE);
-    if (itrKey == _keyDetectedItems.end()) return DetectedItem();
+    auto itrKey = keyDetectedItems_.find(CLASSNAME_DATE_OF_MANUFACTURE);
+    if (itrKey == keyDetectedItems_.end()) return DetectedItem();
 
-    _pDetectorValues2->setThresh(0.05, 0.3);
+    pDetectorValuesOther_->setThresh(0.05, 0.3);
     cv::Rect keyRect = itrKey->second.rect;
 
     string result = "";
@@ -465,15 +466,15 @@ DetectedItem OcrNameplatesAlfa::detectValueOfDateOfManufacture() {
     cv::Rect window(x, y, std::max(0, w), std::max(0, h));
 
     int valueLength = 6;
-    commonDetectProcess(result, *_pDetectorValues2, _image, window, valueLength);
-    return {result, window};
+    commonDetectProcess(result, *pDetectorValuesOther_, image_, window, valueLength);
+    return DetectedItem(result, window);
 }
 
 DetectedItem OcrNameplatesAlfa::detectValueOfMaxNetPowerOfEngine() {
-    auto itrKey = _keyDetectedItems.find(CLASSNAME_MAX_NET_POWER_OF_ENGINE);
-    if (itrKey == _keyDetectedItems.end()) return DetectedItem();
+    auto itrKey = keyDetectedItems_.find(CLASSNAME_MAX_NET_POWER_OF_ENGINE);
+    if (itrKey == keyDetectedItems_.end()) return DetectedItem();
 
-    _pDetectorValues2->setThresh(0.05, 0.3);
+    pDetectorValuesOther_->setThresh(0.05, 0.3);
     cv::Rect keyRect = itrKey->second.rect;
 
     string result = "";
@@ -486,7 +487,7 @@ DetectedItem OcrNameplatesAlfa::detectValueOfMaxNetPowerOfEngine() {
 
     int valueLength = 3;
 
-    commonDetectProcess(result, *_pDetectorValues2, _image, window, valueLength);
+    commonDetectProcess(result, *pDetectorValuesOther_, image_, window, valueLength);
 
     if (result.empty()) {
         x = keyRect.x + keyRect.width;
@@ -494,7 +495,7 @@ DetectedItem OcrNameplatesAlfa::detectValueOfMaxNetPowerOfEngine() {
         w = std::max(int(keyRect.width * 0.1), 90);
         h = std::max(int(keyRect.height * 1), 40);
         window = cv::Rect(x, y, std::max(0, w), std::max(0, h));
-        commonDetectProcess(result, *_pDetectorValues2, _image, window, valueLength);
+        commonDetectProcess(result, *pDetectorValuesOther_, image_, window, valueLength);
     }
 
     for (int i = 0; i < result.size(); ++i) {
@@ -506,14 +507,14 @@ DetectedItem OcrNameplatesAlfa::detectValueOfMaxNetPowerOfEngine() {
         }
     }
 
-    return {result, window};
+    return DetectedItem(result, window);
 }
 
 DetectedItem OcrNameplatesAlfa::detectValueOfNumPassengers() {
-    auto itrKey = _keyDetectedItems.find(CLASSNAME_NUM_PASSENGERS);
-    if (itrKey == _keyDetectedItems.end()) return DetectedItem();
+    auto itrKey = keyDetectedItems_.find(CLASSNAME_NUM_PASSENGERS);
+    if (itrKey == keyDetectedItems_.end()) return DetectedItem();
 
-    _pDetectorValues1->setThresh(0.2, 0.1);
+    pDetectorValuesVin_->setThresh(0.2, 0.1);
     cv::Rect keyRect = itrKey->second.rect;
 
     string result = "";
@@ -525,9 +526,9 @@ DetectedItem OcrNameplatesAlfa::detectValueOfNumPassengers() {
     cv::Rect window(x, y, std::max(0, w), std::max(0, h));
 
     cv::Mat subImg;
-    _image(window).copyTo(subImg);
+    image_(window).copyTo(subImg);
 
-    vector<Detection> valueDets = _pDetectorValues1->detect(subImg);
+    vector<Detection> valueDets = pDetectorValuesVin_->detect(subImg);
 
     sortByXMid(valueDets);
 
@@ -554,14 +555,14 @@ DetectedItem OcrNameplatesAlfa::detectValueOfNumPassengers() {
         }
     }
 
-    return {result, window};
+    return DetectedItem(result, window);
 }
 
 DetectedItem OcrNameplatesAlfa::detectValueOfEngineModel() {
-    auto itrKey = _keyDetectedItems.find(CLASSNAME_ENGINE_MODEL);
-    if (itrKey == _keyDetectedItems.end()) return DetectedItem();
+    auto itrKey = keyDetectedItems_.find(CLASSNAME_ENGINE_MODEL);
+    if (itrKey == keyDetectedItems_.end()) return DetectedItem();
 
-    _pDetectorValues2->setThresh(0.05, 0.3);
+    pDetectorValuesOther_->setThresh(0.05, 0.3);
     cv::Rect keyRect = itrKey->second.rect;
 
     string result = "";
@@ -573,38 +574,38 @@ DetectedItem OcrNameplatesAlfa::detectValueOfEngineModel() {
     cv::Rect window(x, y, std::max(0, w), std::max(0, h));
 
     int valueLength = 8;
-    commonDetectProcess(result, *_pDetectorValues2, *_pClassifierChars, _image, window, valueLength);
+    commonDetectProcess(result, *pDetectorValuesOther_, *pClassifierChars_, image_, window, valueLength);
 
-    return {result, window};
+    return DetectedItem(result, window);
 }
 
 DetectedItem OcrNameplatesAlfa::detectValueOfVehicleModel() {
-    auto itrKey = _keyDetectedItems.find(CLASSNAME_VEHICLE_MODEL);
-    if (itrKey == _keyDetectedItems.end()) return DetectedItem();
+    auto itrKey = keyDetectedItems_.find(CLASSNAME_VEHICLE_MODEL);
+    if (itrKey == keyDetectedItems_.end()) return DetectedItem();
 
-    _pDetectorValues2->setThresh(0.05, 0.3);
+    pDetectorValuesOther_->setThresh(0.05, 0.3);
     cv::Rect keyRect = itrKey->second.rect;
 
     string result = "";
     int x, y, w, h;
-    x = std::min(keyRect.x + keyRect.width + 5, _image.cols - 1);
+    x = std::min(keyRect.x + keyRect.width + 5, image_.cols - 1);
     y = keyRect.y;
-    w = std::max(std::min(int(_image.cols - 1 - x), 120), 0);
+    w = std::max(std::min(int(image_.cols - 1 - x), 120), 0);
     h = std::max(int(keyRect.height * 1), 40);
     cv::Rect window(x, y, std::max(0, w), std::max(0, h));
 
     int valueLength = 8;
     bool containEnglishChar = true;
-    commonDetectProcessForVehicleModel(result, *_pDetectorValues2, _image, window, valueLength, containEnglishChar);
+    commonDetectProcessForVehicleModel(result, *pDetectorValuesOther_, image_, window, valueLength, containEnglishChar);
 
-    return {result, window};
+    return DetectedItem(result, window);
 }
 
 DetectedItem OcrNameplatesAlfa::detectValueOfEngineDisplacement() {
-    auto itrKey = _keyDetectedItems.find(CLASSNAME_ENGINE_DISPLACEMENT);
-    if (itrKey == _keyDetectedItems.end()) return DetectedItem();
+    auto itrKey = keyDetectedItems_.find(CLASSNAME_ENGINE_DISPLACEMENT);
+    if (itrKey == keyDetectedItems_.end()) return DetectedItem();
 
-    _pDetectorValues2->setThresh(0.05, 0.3);
+    pDetectorValuesOther_->setThresh(0.05, 0.3);
     cv::Rect keyRect = itrKey->second.rect;
 
     string result = "";
@@ -616,42 +617,46 @@ DetectedItem OcrNameplatesAlfa::detectValueOfEngineDisplacement() {
     cv::Rect window(x, y, std::max(0, w), std::max(0, h));
 
     int valueLength = 4;
-    commonDetectProcess(result, *_pDetectorValues2, _image, window, valueLength);
-    return {result, window};
+    commonDetectProcess(result, *pDetectorValuesOther_, image_, window, valueLength);
+    return DetectedItem(result, window);
 }
 
-std::string OcrNameplatesAlfa::matchPaint(std::string const& str1, std::string const& str2) {
-    std::vector<std::string> names = {"414", "361", "217", "248", "092", "093", "035", "318", "408", "409", "620"};
-    if (str1 == "0" && str2 == "2")
-        return "092";
-    if (str1 == "4" && str2 == "4")
-        return "414";
+std::string OcrNameplatesAlfa::matchPaintTemplated(std::string const& str) {
+    assert(str.length() == 3);
+    for (auto const& cand: PAINT_CANDIDATES) {
+        bool matched1 = (str[0] == '$' || str[0] == cand[0]);
+        bool matched2 = (str[1] == '$' || str[1] == cand[1]);
+        bool matched3 = (str[2] == '$' || str[2] == cand[2]);
+        if (matched1 && matched2 && matched3) return cand;
+    }
+    return "";
+}
 
-    string result = "";
-    int flag = -1;
+std::string OcrNameplatesAlfa::matchPaint(std::string const& str) {
+    std::string result = "";
 
-    for (int i = 0; i < 11; ++i) {
-        string s1, s2, s3;
-        s1 = names[i].substr(0, 1);
-        s2 = names[i].substr(1, 1);
-        s3 = names[i].substr(2, 1);
-        if ((str1 == s1 && str2 == s2) || (str1 == s2 && str2 == s3)) {
-            flag = i;
-        }
+    if (str.length() > 3) {
+        return matchPaint(str.substr(0, 3));
+    } else if (str.length() == 3) {
+        if (result == "") result = matchPaintTemplated(str);
+        if (result == "") result = matchPaintTemplated(str.substr(0, 2) + "$");
+        if (result == "") result = matchPaintTemplated(str.substr(0, 1) + "$" + str.substr(2, 1));
+        if (result == "") result = matchPaintTemplated("$" + str.substr(1, 2));
+    } else if (str.length() == 2) {
+        if (result == "") result = matchPaintTemplated(str + "$");
+        if (result == "") result = matchPaintTemplated(str.substr(0, 1) + "$" + str.substr(1, 1));
+        if (result == "") result = matchPaintTemplated("$" + str);
     }
 
-    if (flag > -1) {
-        result = names[flag];
-    }
-
+    if (result == "") result = str;
     return result;
 }
 
 DetectedItem OcrNameplatesAlfa::detectValueOfPaint() {
-    auto itrKey = _keyDetectedItems.find(CLASSNAME_PAINT);
-    if (itrKey == _keyDetectedItems.end()) return DetectedItem();
+    auto itrKey = keyDetectedItems_.find(CLASSNAME_PAINT);
+    if (itrKey == keyDetectedItems_.end()) return DetectedItem();
 
-    _pDetectorValues2->setThresh(0.05, 0.3);
+    pDetectorValuesOther_->setThresh(0.05, 0.3);
     cv::Rect keyRect = itrKey->second.rect;
 
     string result = "";
@@ -663,25 +668,10 @@ DetectedItem OcrNameplatesAlfa::detectValueOfPaint() {
     cv::Rect window(x, y, std::max(0, w), std::max(0, h));
 
     int valueLength = 3;
-    commonDetectProcess(result, *_pDetectorValues2, _image, window, valueLength); // thresh = 0.05?
+    commonDetectProcess(result, *pDetectorValuesOther_, image_, window, valueLength); // thresh = 0.05?
+    result = matchPaint(result);
 
-    if (result.size() == 2) {
-        string s1 = result.substr(0, 1);
-        string s2 = result.substr(1, 1);
-        result = matchPaint(s1, s2);
-    } else if (result.size() == 3) {
-        string s1 = result.substr(0, 1);
-        string s2 = result.substr(1, 1);
-        string resultMatch = matchPaint(s1, s2);
-        if (resultMatch.empty()) {
-            s1 = result.substr(1, 1);
-            s2 = result.substr(2, 1);
-            resultMatch = matchPaint(s1, s2);
-        }
-        result = resultMatch;
-    }
-
-    return {result, window};
+    return DetectedItem(result, window);
 }
 
 void OcrNameplatesAlfa::commonDetectProcess(string& result, PvaDetector& detectorValues, cv::Mat const& img,
@@ -782,7 +772,7 @@ void OcrNameplatesAlfa::commonDetectProcess(string& result, PvaDetector& detecto
     for (auto const& det: temp2) {
         cv::Mat cropImg = subImg(det.getRect()).clone();
         cv::resize(cropImg, cropImg, cv::Size(224, 224));
-        vector<Prediction> pre = classifier.Classify(cropImg, 1);
+        vector<Prediction> pre = classifier.classify(cropImg, 1);
         if (det.getScore() < 0.99) {
             if (pre[0].second < 0.85 || !OcrUtils::isNumbericChar(pre[0].first)) {
                 result += det.getClass();
@@ -796,8 +786,8 @@ void OcrNameplatesAlfa::commonDetectProcess(string& result, PvaDetector& detecto
 }
 
 void OcrNameplatesAlfa::commonDetectProcessForVehicleModel(string& result, PvaDetector& detectorValues,
-                                                      cv::Mat const& img, cv::Rect const& window, int valueLength,
-                                                      bool containsLetters, float conf, float iouThresh) {
+                                                           cv::Mat const& img, cv::Rect const& window, int valueLength,
+                                                           bool containsLetters, float conf, float iouThresh) {
     result = "";
     vector<Detection> temp1;
     subCommonDetectProcess(detectorValues, img, window, temp1, containsLetters, conf, iouThresh);

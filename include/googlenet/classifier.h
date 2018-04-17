@@ -6,7 +6,6 @@
 #define FULL_VEHICLE_INFOMATION_CLASSIFIER_H
 
 #include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <caffe/caffe.hpp>
 
@@ -20,17 +19,17 @@ public:
                const string& mean_file,
                const string& label_file);
 
-    std::vector<Prediction> Classify(const cv::Mat& img, int N = 5);
+    std::vector<Prediction> classify(const cv::Mat &img, int N = 5);
 
 private:
-    void SetMean(const string& mean_file);
+    void setMean(const string &mean_file);
 
-    std::vector<float> Predict(const cv::Mat& img);
+    std::vector<float> predict(const cv::Mat &img);
 
-    void WrapInputLayer(std::vector<cv::Mat>* input_channels);
+    void wrapInputLayer(std::vector<cv::Mat> *input_channels);
 
-    void Preprocess(const cv::Mat& img,
-                    std::vector<cv::Mat>* input_channels);
+    void preprocess(const cv::Mat &img,
+                    std::vector<cv::Mat> *input_channels);
 
 private:
     shared_ptr<Net<float> > net_;
