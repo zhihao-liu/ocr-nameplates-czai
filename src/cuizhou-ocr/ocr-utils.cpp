@@ -2,7 +2,7 @@
 // Created by Zhihao Liu on 18-4-4.
 //
 
-#include "OcrUtils.hpp"
+#include "ocr-utils.hpp"
 #include <dirent.h>
 
 #include <opencv2/imgproc/imgproc.hpp>

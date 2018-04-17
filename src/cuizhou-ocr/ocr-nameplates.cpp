@@ -2,10 +2,10 @@
 // Created by Zhihao Liu on 18-4-4.
 //
 
-#include "OcrNameplates.h"
+#include "ocr-nameplates.h"
 
 
-using namespace cuizhou;
+namespace cuizhou {
 
 std::string const OcrNameplates::CLASSNAME_VIN = "Vin";
 std::string const OcrNameplates::CLASSNAME_MANUFACTURER = "Manufacturer";
@@ -37,16 +37,12 @@ std::unordered_map<std::string ,std::string> const OcrNameplates::CLASSNAME_ENG_
         {CLASSNAME_PAINT, "涂料"}
 };
 
-OcrNameplates::~OcrNameplates() = default;
-
-OcrNameplates::OcrNameplates() = default;
-
-InfoTable const& OcrNameplates::getResult() const {
-    return _result;
+InfoTable const& OcrNameplates::result() const {
+    return result_;
 }
 
 void OcrNameplates::printResultToConsoleInChinese() const {
-    _result.printResultToConsole([](std::string const& key) {
+    result_.printResultToConsole([](std::string const& key) {
         auto itrKeyMapped = CLASSNAME_ENG_TO_CHN.find(key);
         return itrKeyMapped == CLASSNAME_ENG_TO_CHN.end() ?
                "" : itrKeyMapped->second;
@@ -54,9 +50,11 @@ void OcrNameplates::printResultToConsoleInChinese() const {
 }
 
 void OcrNameplates::printResultToFileInChinese(std::ofstream& outFile) const {
-    _result.printResultToFile(outFile, [](std::string const& key) {
+    result_.printResultToFile(outFile, [](std::string const& key) {
         auto itrKeyMapped = CLASSNAME_ENG_TO_CHN.find(key);
         return itrKeyMapped == CLASSNAME_ENG_TO_CHN.end() ?
                "" : itrKeyMapped->second;
     });
 }
+
+} // end namespace cuizhou

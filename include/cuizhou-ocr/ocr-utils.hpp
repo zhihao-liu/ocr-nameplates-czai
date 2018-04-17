@@ -6,7 +6,7 @@
 #define CUIZHOU_OCR_OCRUTILS_H
 
 #include <fstream>
-#include "opencv2/core/core.hpp"
+#include <opencv2/core/core.hpp>
 #include "pvadetector.h"
 
 

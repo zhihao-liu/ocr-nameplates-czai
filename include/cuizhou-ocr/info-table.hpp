@@ -12,20 +12,30 @@
 
 
 namespace cuizhou {
-    struct DetectedItem {
-        std::string const content;
-        cv::Rect const rect;
+    class DetectedItem {
+    public:
+        std::string content;
+        cv::Rect rect;
+
+        ~DetectedItem() = default;
+        DetectedItem() = default;
+        DetectedItem(std::string const& _content, cv::Rect const& _rect);
     };
 
-    struct KeyValuePair {
-        DetectedItem const key;
-        DetectedItem const value;
+    class KeyValuePair {
+    public:
+        DetectedItem key;
+        DetectedItem value;
+
+        ~KeyValuePair() = default;
+        KeyValuePair() = default;
+        KeyValuePair(DetectedItem const& _key, DetectedItem const& _value);
     };
 
     class InfoTable {
     public:
-        ~InfoTable();
-        InfoTable();
+        ~InfoTable() = default;
+        InfoTable() = default;
         void clear();
         void put(std::string const& keyName, KeyValuePair const& keyValuePair);
         KeyValuePair const* get(std::string const& keyName) const;

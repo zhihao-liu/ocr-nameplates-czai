@@ -1,1 +1,0 @@
-Put compiled Caffe libs here.
