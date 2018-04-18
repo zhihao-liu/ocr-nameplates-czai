@@ -170,18 +170,18 @@ std::vector<Detection> PvaDetector::detect(cv::Mat const& img) const {
         dets.insert(dets.end(), singleDets.begin(), singleDets.end());
     }
 
-    delete data_buf;
+    delete[] data_buf;
     //free(data_buf);
     data_buf = nullptr;
-    delete boxes;
+    delete[] boxes;
     boxes = nullptr;
-    delete keep;
+    delete[] keep;
     keep = nullptr;
-    delete pred_per_class;
+    delete[] pred_per_class;
     pred_per_class = nullptr;
-    delete sorted_pred_cls;
+    delete[] sorted_pred_cls;
     sorted_pred_cls = nullptr;
-    delete pred;
+    delete[] pred;
     pred = nullptr;
 
     return dets;

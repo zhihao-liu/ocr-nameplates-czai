@@ -2,7 +2,7 @@
 // Created by Zhihao Liu on 18-4-4.
 //
 
-#include "ocr-nameplates.h"
+#include "ocr_nameplates.h"
 
 
 namespace cuizhou {

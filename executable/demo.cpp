@@ -9,8 +9,8 @@
 #include <boost/filesystem.hpp>
 #include "classifier.h"
 #include "pvadetector.h"
-#include "ocr-nameplates-alfa.h"
-#include "ocr-utils.hpp"
+#include "ocr_nameplates_alfa.h"
+#include "ocr_utils.hpp"
 
 #define SAVE_RESULTS 1
 
@@ -21,37 +21,37 @@ int main(int argc, char* argv[]) {
     using namespace cuizhou;
     using namespace boost::filesystem;
 
-    string pathInputDir = "/Users/liuzhihao/Desktop/OCR/data/alfa/raw-alfaromeo";
-    string pathOutputDir = "/Users/liuzhihao/Desktop/OCR/data/alfa/results";
+    string pathInputDir = "/home/cuizhou/lzh/data/raw-alfaromeo";
+    string pathOutputDir = "/home/cuizhou/lzh/data/results";
 
-    string modelPvaKeys = "/Users/liuzhihao/Dropbox/Advancement/Internship Cuizhou/OCR Nameplates/Models AlfaRomeo/pva_compressed/pva_keys/car_brand_iter_100000.caffemodel";
-    string ptPvaKeys = "/Users/liuzhihao/Dropbox/Advancement/Internship Cuizhou/OCR Nameplates/Models AlfaRomeo/pva_compressed/pva_keys/test.prototxt";
-    vector<string> classesPvaKeys = OcrUtils::readClassNames("/Users/liuzhihao/Dropbox/Advancement/Internship Cuizhou/OCR Nameplates/Models AlfaRomeo/pva_compressed/pva_keys/classes_name.txt");
+    string modelPvaKeys = "/home/cuizhou/lzh/models/pva_keys_compressed/car_brand_iter_100000.caffemodel";
+    string ptPvaKeys = "/home/cuizhou/lzh/models/pva_keys_compressed/test.prototxt";
+    vector<string> classesPvaKeys = OcrUtils::readClassNames("/home/cuizhou/lzh/models/pva_keys_compressed/classes_name.txt");
 
-    string modelPvaValues1 = "/Users/liuzhihao/Dropbox/Advancement/Internship Cuizhou/OCR Nameplates/Models AlfaRomeo/pva_compressed/pva_vin_value_chars/alfa_engnum_char_iter_100000.caffemodel";
-    string ptPvaValues1 = "/Users/liuzhihao/Dropbox/Advancement/Internship Cuizhou/OCR Nameplates/Models AlfaRomeo/pva_compressed/pva_vin_value_chars/test.prototxt";
-    vector<string> classesPvaValues1 = OcrUtils::readClassNames("/Users/liuzhihao/Dropbox/Advancement/Internship Cuizhou/OCR Nameplates/Models AlfaRomeo/pva_compressed/pva_vin_value_chars/classes_name.txt");
+    string modelPvaValues1 = "/home/cuizhou/lzh/models/pva_vin_value_chars_compressed/alfa_engnum_char_iter_100000.caffemodel";
+    string ptPvaValues1 = "/home/cuizhou/lzh/models/pva_vin_value_chars_compressed/test.prototxt";
+    vector<string> classesPvaValues1 = OcrUtils::readClassNames("/home/cuizhou/lzh/models/pva_vin_value_chars_compressed/classes_name.txt");
 
-    string modelPvaValues2 = "/Users/liuzhihao/Dropbox/Advancement/Internship Cuizhou/OCR Nameplates/Models AlfaRomeo/pva_compressed/pva_other_value_chars/alfa_char_shape_pva_iter_100000.caffemodel";
-    string ptPvaValues2 = "/Users/liuzhihao/Dropbox/Advancement/Internship Cuizhou/OCR Nameplates/Models AlfaRomeo/pva_compressed/pva_other_value_chars/test.prototxt";
-    vector<string> classesPvaValues2 = OcrUtils::readClassNames("/Users/liuzhihao/Dropbox/Advancement/Internship Cuizhou/OCR Nameplates/Models AlfaRomeo/pva_compressed/pva_other_value_chars/classes_name.txt");
+    string modelPvaValues2 = "/home/cuizhou/lzh/models/pva_other_value_chars_compressed/alfa_char_shape_pva_iter_100000.caffemodel";
+    string ptPvaValues2 = "/home/cuizhou/lzh/models/pva_other_value_chars_compressed/test.prototxt";
+    vector<string> classesPvaValues2 = OcrUtils::readClassNames("/home/cuizhou/lzh/models/pva_other_value_chars_compressed/classes_name.txt");
 
-    string modelGooglenet = "/Users/liuzhihao/Dropbox/Advancement/Internship Cuizhou/OCR Nameplates/Models AlfaRomeo/googlenet_chars/model_googlenet_iter_38942.caffemodel";
-    string ptGooglenet = "/Users/liuzhihao/Dropbox/Advancement/Internship Cuizhou/OCR Nameplates/Models AlfaRomeo/googlenet_chars/deploy.prototxt";
-    string meanGooglenet = "/Users/liuzhihao/Dropbox/Advancement/Internship Cuizhou/OCR Nameplates/Models AlfaRomeo/googlenet_chars/mean.binaryproto";
-    string classesGooglenet = "/Users/liuzhihao/Dropbox/Advancement/Internship Cuizhou/OCR Nameplates/Models AlfaRomeo/googlenet_chars/classname.txt";
+    string modelGooglenet = "/home/cuizhou/lzh/models/googlenet_chars/model_googlenet_iter_38942.caffemodel";
+    string ptGooglenet = "/home/cuizhou/lzh/models/googlenet_chars/deploy.prototxt";
+    string meanGooglenet = "/home/cuizhou/lzh/models/googlenet_chars/mean.binaryproto";
+    string classesGooglenet = "/home/cuizhou/lzh/models/googlenet_chars/classname.txt";
 
     PvaDetector detectorKeys;
     detectorKeys.init(ptPvaKeys, modelPvaKeys, classesPvaKeys);
-    detectorKeys.setComputeMode("cpu", 0);
+    detectorKeys.setComputeMode("gpu", 0);
 
     PvaDetector detectorValues1;
     detectorValues1.init(ptPvaValues1, modelPvaValues1, classesPvaValues1);
-    detectorValues1.setComputeMode("cpu", 0);
+    detectorValues1.setComputeMode("gpu", 0);
 
     PvaDetector detectorValues2;
     detectorValues2.init(ptPvaValues2, modelPvaValues2, classesPvaValues2);
-    detectorValues2.setComputeMode("cpu", 0);
+    detectorValues2.setComputeMode("gpu", 0);
 
     Classifier classifier(ptGooglenet, modelGooglenet, meanGooglenet, classesGooglenet);
 

@@ -2,7 +2,7 @@
 // Created by Zhihao Liu on 18-4-4.
 //
 
-#include "ocr-utils.hpp"
+#include "ocr_utils.hpp"
 #include <dirent.h>
 
 #include <opencv2/imgproc/imgproc.hpp>
@@ -93,40 +93,21 @@ int OcrUtils::computeSpacing(cv::Rect const& rect1, cv::Rect const& rect2) {
     return std::abs(xMid(rect1) - xMid(rect2));
 }
 
-cv::Rect& OcrUtils::validateWindow(cv::Rect& window, int width, int height) {
-    if (window.x < 0) {
-        window.x = 0;
-    } else if (window.x >= width) {
-        window.x = width - 1;
-    }
+cv::Rect OcrUtils::validateWindow(cv::Rect const& window, int width, int height) {
+    int newX = std::min(std::max(window.x, 0), width - 1);
+    int newY = std::min(std::max(window.y, 0), height - 1);
+    int newW = std::min(std::max(window.width, 1), width - newX);
+    int newH = std::min(std::max(window.height, 1), height - newY);
 
-    if (window.y < 0) {
-        window.y = 0;
-    } else if (window.y >= height) {
-        window.y = height - 1;
-    }
-
-    if (window.width < 1) {
-        window.width = 1;
-    } else if (window.x + window.width > width) {
-        window.width = width - window.x;
-    }
-
-    if (window.height < 1) {
-        window.height = 1;
-    } else if (window.y + window.height > height) {
-        window.height = height - window.y;
-    }
-
-    return window;
+    return cv::Rect(newX, newY, newW, newH);
 }
 
-cv::Rect& OcrUtils::validateWindow(cv::Rect& roi, cv::Mat const& img) {
+cv::Rect OcrUtils::validateWindow(cv::Rect const& roi, cv::Mat const& img) {
     // ensure the roi is within the extent of the image after adjustments
     return validateWindow(roi, img.cols, img.rows);
 }
 
-cv::Rect& OcrUtils::validateWindow(cv::Rect& roi, cv::Rect const& extent) {
+cv::Rect OcrUtils::validateWindow(cv::Rect const& roi, cv::Rect const& extent) {
     // ensure the roi is within the extent of the image after adjustments
     return validateWindow(roi, extent.width, extent.height);
 }

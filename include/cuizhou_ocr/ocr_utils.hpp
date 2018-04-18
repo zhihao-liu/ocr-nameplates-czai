@@ -26,9 +26,9 @@ namespace cuizhou {
         static double computeIou(cv::Rect const& rect1, cv::Rect const& rect2);
         static int computeSpacing(cv::Rect const& rect1, cv::Rect const& rect2);
 
-        static cv::Rect& validateWindow(cv::Rect& window, int width, int height);
-        static cv::Rect& validateWindow(cv::Rect& roi, cv::Mat const& img);
-        static cv::Rect& validateWindow(cv::Rect& roi, cv::Rect const& extent);
+        static cv::Rect validateWindow(cv::Rect const& window, int width, int height);
+        static cv::Rect validateWindow(cv::Rect const& roi, cv::Mat const& img);
+        static cv::Rect validateWindow(cv::Rect const& roi, cv::Rect const& extent);
 
         template<typename T, typename F> static double findMedian(std::vector<T> vec, F const& mapToNum);
         template<typename T, typename F> static double computeMean(std::vector<T> const& vec, F const& mapToNum);

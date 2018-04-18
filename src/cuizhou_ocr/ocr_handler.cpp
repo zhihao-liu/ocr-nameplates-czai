@@ -2,7 +2,7 @@
 // Created by Zhihao Liu on 18-4-4.
 //
 
-#include "ocr-handler.h"
+#include "ocr_handler.h"
 
 
 namespace cuizhou {
