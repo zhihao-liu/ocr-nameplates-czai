@@ -5,10 +5,10 @@
 #ifndef OCR_CUIZHOU_OCRNAMEPLATES_H
 #define OCR_CUIZHOU_OCRNAMEPLATES_H
 
-#include "ocr-handler.h"
+#include "ocr_handler.h"
 #include <unordered_map>
 #include <fstream>
-#include "info-table.hpp"
+#include "info_table.hpp"
 
 
 namespace cuizhou {

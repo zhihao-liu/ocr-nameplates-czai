@@ -5,7 +5,7 @@
 #ifndef OCR_CUIZHOU_OCRNAMEPLATESALFA_H
 #define OCR_CUIZHOU_OCRNAMEPLATESALFA_H
 
-#include "ocr-nameplates.h"
+#include "ocr_nameplates.h"
 #include "pvadetector.h"
 #include "classifier.h"
 
@@ -33,9 +33,12 @@ namespace cuizhou {
         std::map<std::string, DetectedItem> keyDetectedItems_;
 
         void detectKeys();
-        void adaptiveRotation();
+        void adaptiveRotationWithUpdatingKeyDetections();
         DetectedItem detectValue(std::string const& keyName);
         DetectedItem detectValueOfVin();
+
+        static cv::Rect estimateValueRectOfVin(cv::Rect const& keyRect);
+        static cv::Rect estimateValueRectOf;
 
         static std::string joinDetectedChars(std::vector<Detection> const& dets);
 
@@ -55,14 +58,12 @@ namespace cuizhou {
         static double computeCharAlignmentSlope(std::vector<Detection> const& dets);
         static int estimateCharSpacing(std::vector<Detection> const& dets);
 
-        static cv::Rect& expandWindow(cv::Rect& roi, std::vector<Detection> const& dets);
+        static cv::Rect expandWindow(cv::Rect const& roi, std::vector<Detection> const& dets);
         static bool isWindowTooLarge(cv::Rect const& roi, cv::Rect const& detsExtent);
-        static cv::Rect& adjustWindow(cv::Rect& roi, cv::Rect const& detsExtent);
-
-        static cv::Rect estimateValueRectOfVin(cv::Rect const& keyRect);
+        static cv::Rect adjustWindow(cv::Rect const& roi, cv::Rect const& detsExtent);
 
         static std::string matchPaint(std::string const& str);
-        static std::string matchPaintTemplated(std::string const& str);
+        static std::string matchPaintWithLengthFixed(std::string const &str);
 
         // -------- added by WRZ ------- //
         DetectedItem detectValueOfMaxMassAllowed();

@@ -2,7 +2,7 @@
 // Created by Zhihao Liu on 18-4-4.
 //
 
-#include "info-table.hpp"
+#include "info_table.hpp"
 
 
 namespace cuizhou {

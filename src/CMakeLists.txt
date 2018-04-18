@@ -8,6 +8,6 @@ aux_source_directory(googlenet GOOGLENET_SRC)
 add_library(googlenet SHARED ${GOOGLENET_SRC})
 target_link_libraries(googlenet ${CAFFE_DEPENDENCIES})
 
-aux_source_directory(cuizhou-ocr CUIZHOUOCR_SRCS)
+aux_source_directory(cuizhou_ocr CUIZHOUOCR_SRCS)
 add_library(cuizhou_ocr SHARED ${CUIZHOUOCR_SRCS})
 target_link_libraries(cuizhou_ocr ${CAFFE_DEPENDENCIES} pva_detector googlenet)
