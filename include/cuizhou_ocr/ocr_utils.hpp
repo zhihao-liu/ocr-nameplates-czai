@@ -11,44 +11,41 @@
 
 
 namespace cuizhou {
-    class OcrUtils {
-    public:
-        static void imResizeAndFill(cv::Mat& img, int newWidth, int newHeight);
-        static void imrotate(cv::Mat& img, cv::Mat& newImg, double angleInDegree);
-        static std::vector<std::string> readClassNames(std::string const& path);
 
-        static int xMid(cv::Rect const& rect);
-        static int yMid(cv::Rect const& rect);
+class OcrUtils {
+public:
+    static void imResizeAndFill(cv::Mat& img, int newWidth, int newHeight);
+    static void imrotate(cv::Mat& img, cv::Mat& newImg, double angleInDegree);
+    static std::vector<std::string> readClassNames(std::string const& path);
 
-        static int computeXOverlap(cv::Rect const& rect1, cv::Rect const& rect2);
-        static int computeYOverlap(cv::Rect const& rect1, cv::Rect const& rect2);
-        static int computeAreaIntersection(cv::Rect const& rect1, cv::Rect const& rect2);
-        static double computeIou(cv::Rect const& rect1, cv::Rect const& rect2);
-        static int computeSpacing(cv::Rect const& rect1, cv::Rect const& rect2);
+    static int xMid(cv::Rect const& rect);
+    static int yMid(cv::Rect const& rect);
 
-        static cv::Rect validateWindow(cv::Rect const& window, int width, int height);
-        static cv::Rect validateWindow(cv::Rect const& roi, cv::Mat const& img);
-        static cv::Rect validateWindow(cv::Rect const& roi, cv::Rect const& extent);
+    static int computeXOverlap(cv::Rect const& rect1, cv::Rect const& rect2);
+    static int computeYOverlap(cv::Rect const& rect1, cv::Rect const& rect2);
+    static int computeAreaIntersection(cv::Rect const& rect1, cv::Rect const& rect2);
+    static double computeIou(cv::Rect const& rect1, cv::Rect const& rect2);
+    static int computeSpacing(cv::Rect const& rect1, cv::Rect const& rect2);
 
-        template<typename T, typename F> static double findMedian(std::vector<T> vec, F const& mapToNum);
-        template<typename T, typename F> static double computeMean(std::vector<T> const& vec, F const& mapToNum);
+    static cv::Rect validateWindow(cv::Rect const& window, int width, int height);
+    static cv::Rect validateWindow(cv::Rect const& roi, cv::Mat const& img);
+    static cv::Rect validateWindow(cv::Rect const& roi, cv::Rect const& extent);
 
-        static bool isNumbericChar(std::string const& str);
-    };
+    template<typename T, typename F> static double findMedian(std::vector<T> vec, F const& mapToNum);
+    template<typename T, typename F> static double computeMean(std::vector<T> const& vec, F const& mapToNum);
 
-
-    class LeastSquare {
-    public:
-        LeastSquare(std::vector<double> const& x, std::vector<double> const& y);
-        double getSlope() const;
-        double getConstant() const;
-    private:
-        double a, b;
-    };
-}
+    static bool isNumbericChar(std::string const& str);
+};
 
 
-using namespace cuizhou;
+class LeastSquare {
+public:
+    LeastSquare(std::vector<double> const& x, std::vector<double> const& y);
+    double getSlope() const;
+    double getConstant() const;
+private:
+    double a, b;
+};
 
 template<typename T, typename F>
 double OcrUtils::findMedian(std::vector<T> vec, F const& mapToNum) {
@@ -70,6 +67,8 @@ double OcrUtils::computeMean(std::vector<T> const& vec, F const& mapToNum) {
     }
     return avg / vec.size();
 };
+
+} // end namespace cuizhou
 
 
 #endif //CUIZHOU_OCR_OCRUTILS_H

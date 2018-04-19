@@ -71,108 +71,14 @@ int main(int argc, char* argv[]) {
         OcrNameplatesAlfa ocr(detectorKeys, detectorValues1, detectorValues2, classifier);
         ocr.setImage(img);
         ocr.processImage();
-
-        ocr.printResultToConsoleInChinese();
+        auto result = ocr.getResultAsArray();
+        for (auto const& item : result) {
+            cout << item << endl;
+        }
+//        ocr.printResultToConsoleInChinese();
         imshow("", ocr.image());
         waitKey(0);
-//        InfoTable result = ocr.result();
 
-//        bool flag = true;
-//        {
-//            auto pairPtr = result.get("Vin");
-//            if (pairPtr == nullptr) {
-//                flag = false;
-//            } else {
-//                auto val = pairPtr->value.content;
-//                if (val != imgId) flag = false;
-//            }
-//        }
-//
-//        {
-//            auto pairPtr = result.get("MaxMassAllowed");
-//            if (pairPtr == nullptr) {
-//                flag = false;
-//            } else {
-//                auto val = pairPtr->value.content;
-//                if (val != "2150" && val != "2175") flag = false;
-//            }
-//        }
-//
-//        {
-//            auto pairPtr = result.get("MaxNetPowerOfEngine");
-//            if (pairPtr == nullptr) {
-//                flag = false;
-//            } else {
-//                auto val = pairPtr->value.content;
-//                if (val != "147" && val != "206") flag = false;
-//            }
-//        }
-//
-//        {
-//            auto pairPtr = result.get("EngineModel");
-//            if (pairPtr == nullptr) {
-//                flag = false;
-//            } else {
-//                auto val = pairPtr->value.content;
-//                if (val != "55273835") flag = false;
-//            }
-//        }
-//
-//        {
-//            auto pairPtr = result.get("NumPassengers");
-//            if (pairPtr == nullptr) {
-//                flag = false;
-//            } else {
-//                auto val = pairPtr->value.content;
-//                if (val != "5") flag = false;
-//            }
-//        }
-//
-//        {
-//            auto pairPtr = result.get("VehicleModel");
-//            if (pairPtr == nullptr) {
-//                flag = false;
-//            } else {
-//                auto val = pairPtr->value.content;
-//                if (val != "AR952CA2" && val != "AR952BA2") flag = false;
-//            }
-//        }
-//
-//        {
-//            auto pairPtr = result.get("EngineDisplacement");
-//            if (pairPtr == nullptr) {
-//                flag = false;
-//            } else {
-//                auto val = pairPtr->value.content;
-//                if (val != "1995") flag = false;
-//            }
-//        }
-//
-//        {
-//            auto pairPtr = result.get("DateOfManufacture");
-//            if (pairPtr == nullptr) {
-//                flag = false;
-//            } else {
-//                auto val = pairPtr->value.content;
-//                if (val != "201703" && val != "201704" && val != "201701") flag = false;
-//            }
-//        }
-//
-//        {
-//            auto pairPtr = result.get("Paint");
-//            if (pairPtr == nullptr) {
-//                flag = false;
-//            } else {
-//                auto val = pairPtr->value.content;
-//                if (val.length() != 3) flag = false;
-//            }
-//        }
-
-//        ++countAll;
-//        countCorrect += flag;
-
-//        cout << countCorrect << " out of " << countAll
-//             << " (" << float(countCorrect) / countAll * 100  << "%) are correct." << endl;
     }
 
     auto end = std::chrono::system_clock::now();

@@ -7,7 +7,8 @@
 
 #include <opencv2/imgproc/imgproc.hpp>
 
-using namespace cuizhou;
+
+namespace cuizhou {
 
 void OcrUtils::imResizeAndFill(cv::Mat& img, int newWidth, int newHeight) {
     if (img.cols == newWidth && img.rows == newHeight) return;
@@ -131,3 +132,5 @@ double LeastSquare::getSlope() const {
 double LeastSquare::getConstant() const {
     return b;
 };
+
+} // end namespace cuizhou

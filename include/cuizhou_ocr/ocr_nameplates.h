@@ -6,41 +6,31 @@
 #define OCR_CUIZHOU_OCRNAMEPLATES_H
 
 #include "ocr_handler.h"
+#include <map>
 #include <unordered_map>
 #include <fstream>
-#include "info_table.hpp"
+#include "key_value_pair.h"
+#include "classname_dict.hpp"
 
 
 namespace cuizhou {
-    class OcrNameplates : public OcrHandler {
-    public:
-        virtual ~OcrNameplates() override = default;
-        virtual void processImage() override = 0;
-        InfoTable const& result() const;
-        void printResultToConsoleInChinese() const;
-        void printResultToFileInChinese(std::ofstream& outFile) const;
+class OcrNameplates : public OcrHandler {
+protected:
+    enum class NameplateField { UNKNOWN = -1, VIN = 0, MANUFACTURER, BRAND, MAX_MASS_ALLOWED, MAX_NET_POWER_OF_ENGINE, COUNTRY, FACTORY, ENGINE_MODEL, NUM_PASSENGERS, VEHICLE_MODEL, ENGINE_DISPLACEMENT, DATE_OF_MANUFACTURE, PAINT };
+    typedef ClassnameDict<NameplateField> NameplateFieldDict;
+public:
+    virtual ~OcrNameplates() override = default;
+    virtual void processImage() override = 0;
+    std::vector<KeyValuePair> getResultAsArray() const;
+//    void printResultToConsoleInChinese() const;
+//    void printResultToFileInChinese(std::ofstream& outFile) const;
 
-    protected:
-        static std::string const CLASSNAME_VIN;
-        static std::string const CLASSNAME_MANUFACTURER;
-        static std::string const CLASSNAME_BRAND;
-        static std::string const CLASSNAME_MAX_MASS_ALLOWED;
-        static std::string const CLASSNAME_MAX_NET_POWER_OF_ENGINE;
-        static std::string const CLASSNAME_COUNTRY;
-        static std::string const CLASSNAME_FACTORY;
-        static std::string const CLASSNAME_ENGINE_MODEL;
-        static std::string const CLASSNAME_NUM_PASSENGERS;
-        static std::string const CLASSNAME_VEHICLE_MODEL;
-        static std::string const CLASSNAME_ENGINE_DISPLACEMENT;
-        static std::string const CLASSNAME_DATE_OF_MANUFACTURE;
-        static std::string const CLASSNAME_PAINT;
+protected:
+    static NameplateFieldDict const fieldDict_;
+    std::map<NameplateField, KeyValuePair> result_;
 
-        static std::unordered_map<std::string, std::string> const CLASSNAME_ENG_TO_CHN;
-
-        InfoTable result_;
-
-        OcrNameplates() = default;
-    };
+    OcrNameplates() = default;
+};
 }
 
 
