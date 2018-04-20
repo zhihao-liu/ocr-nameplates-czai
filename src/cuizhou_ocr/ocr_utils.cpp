@@ -10,32 +10,37 @@
 
 namespace cuizhou {
 
-void OcrUtils::imResizeAndFill(cv::Mat& img, int newWidth, int newHeight) {
-    if (img.cols == newWidth && img.rows == newHeight) return;
+cv::Mat OcrUtils::imgResizeAndFill(cv::Mat const& img, cv::Size const& newSize) {
+    return imgResizeAndFill(img, newSize.width, newSize.height);
+}
 
+cv::Mat OcrUtils::imgResizeAndFill(cv::Mat const& img, int newWidth, int newHeight) {
+    if (img.cols == newWidth && img.rows == newHeight) return img.clone();
+
+    cv::Mat newImg(newHeight, newWidth, CV_8UC3, cv::Scalar(0, 0, 0));;
     float wScale = float(newWidth) / img.cols;
     float hScale = float(newHeight) / img.rows;
 
-    if (wScale == hScale) {
-        cv::resize(img, img, cv::Size(newWidth, newHeight));
-    } else {
-        float unifiedScale = wScale < hScale ? wScale : hScale;
+    float unifiedScale = wScale < hScale ? wScale : hScale;
 
-        cv::Mat newImg(newHeight, newWidth, CV_8UC3, cv::Scalar(0, 0, 0));
-        cv::resize(img, img, cv::Size(int(unifiedScale * img.cols), int(unifiedScale * img.rows)));
+    cv::Mat tempImg;
+    cv::resize(img, tempImg, cv::Size(int(unifiedScale * img.cols), int(unifiedScale * img.rows)));
 
-        int xShift = (newImg.cols - img.cols) / 2;
-        int yShift = (newImg.rows - img.rows) / 2;
-        img.copyTo(newImg(cv::Rect(xShift, yShift, img.cols, img.rows)));
+    int xShift = (newImg.cols - tempImg.cols) / 2;
+    int yShift = (newImg.rows - tempImg.rows) / 2;
+    tempImg.copyTo(newImg(cv::Rect(xShift, yShift, tempImg.cols, tempImg.rows)));
 
-        img = newImg;
-    }
+    return newImg;
 }
 
-void OcrUtils::imrotate(cv::Mat& img, cv::Mat& newImg, double angleInDegree) {
+cv::Mat OcrUtils::imgRotate(cv::Mat const& img, double angleInDegree) {
+    cv::Mat newImg;
+
     cv::Point2d pt(img.cols / 2.0, img.rows / 2.0);
     cv::Mat r = cv::getRotationMatrix2D(pt, angleInDegree, 1.0);
     cv::warpAffine(img, newImg, r, img.size());
+
+    return newImg;
 }
 
 std::vector<std::string> OcrUtils::readClassNames(std::string const& path) {
@@ -85,32 +90,32 @@ int OcrUtils::computeAreaIntersection(cv::Rect const& rect1, cv::Rect const& rec
     return xOverlap * yOverlap;
 }
 
-double OcrUtils::computeIou(cv::Rect const& rect1, cv::Rect const& rect2) {
+float OcrUtils::computeIou(cv::Rect const& rect1, cv::Rect const& rect2) {
     int areaIntersection = computeAreaIntersection(rect1, rect2);
-    return double(areaIntersection) / (rect1.area() + rect2.area() - areaIntersection);
+    return float(areaIntersection) / (rect1.area() + rect2.area() - areaIntersection);
 }
 
 int OcrUtils::computeSpacing(cv::Rect const& rect1, cv::Rect const& rect2) {
     return std::abs(xMid(rect1) - xMid(rect2));
 }
 
-cv::Rect OcrUtils::validateWindow(cv::Rect const& window, int width, int height) {
-    int newX = std::min(std::max(window.x, 0), width - 1);
-    int newY = std::min(std::max(window.y, 0), height - 1);
-    int newW = std::min(std::max(window.width, 1), width - newX);
-    int newH = std::min(std::max(window.height, 1), height - newY);
+cv::Rect OcrUtils::validateRoi(cv::Rect const& roi, int width, int height) {
+    int newX = std::min(std::max(roi.x, 0), width - 1);
+    int newY = std::min(std::max(roi.y, 0), height - 1);
+    int newW = std::min(std::max(roi.width, 1), width - newX);
+    int newH = std::min(std::max(roi.height, 1), height - newY);
 
     return cv::Rect(newX, newY, newW, newH);
 }
 
-cv::Rect OcrUtils::validateWindow(cv::Rect const& roi, cv::Mat const& img) {
+cv::Rect OcrUtils::validateRoi(cv::Rect const& roi, cv::Mat const& img) {
     // ensure the roi is within the extent of the image after adjustments
-    return validateWindow(roi, img.cols, img.rows);
+    return validateRoi(roi, img.cols, img.rows);
 }
 
-cv::Rect OcrUtils::validateWindow(cv::Rect const& roi, cv::Rect const& extent) {
+cv::Rect OcrUtils::validateRoi(cv::Rect const& roi, cv::Rect const& extent) {
     // ensure the roi is within the extent of the image after adjustments
-    return validateWindow(roi, extent.width, extent.height);
+    return validateRoi(roi, extent.width, extent.height);
 }
 
 LeastSquare::LeastSquare(std::vector<double> const& x, std::vector<double> const& y) {

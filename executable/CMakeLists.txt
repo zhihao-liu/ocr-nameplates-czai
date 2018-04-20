@@ -1,2 +1,2 @@
 add_executable(demo demo.cpp)
-target_link_libraries(demo googlenet pva_detector cuizhou_ocr boost_filesystem)
+target_link_libraries(demo googlenet pvadetector cuizhou_ocr boost_filesystem)

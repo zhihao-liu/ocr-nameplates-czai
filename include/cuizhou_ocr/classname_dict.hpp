@@ -10,7 +10,7 @@
 #include <vector>
 #include <unordered_map>
 #include <cassert>
-#include "enum_hasher.hpp"
+#include "enum_hashmap.hpp"
 
 
 namespace cuizhou {

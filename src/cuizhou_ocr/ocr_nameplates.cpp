@@ -7,7 +7,7 @@
 
 namespace cuizhou {
 
-OcrNameplates::NameplateFieldDict const OcrNameplates::fieldDict_(
+ClassnameDict<OcrNameplates::NameplateField> const OcrNameplates::fieldDict_(
         {NameplateField::VIN, NameplateField::MANUFACTURER, NameplateField::BRAND, NameplateField::MAX_MASS_ALLOWED, NameplateField::MAX_NET_POWER_OF_ENGINE, NameplateField::COUNTRY, NameplateField::FACTORY, NameplateField::ENGINE_MODEL, NameplateField::NUM_PASSENGERS, NameplateField::VEHICLE_MODEL, NameplateField::ENGINE_DISPLACEMENT, NameplateField::DATE_OF_MANUFACTURE, NameplateField::PAINT},
         NameplateField::UNKNOWN,
         {"Vin", "Manufacturer", "Brand", "MaxMassAllowed", "MaxNetPowerOfEngine", "Country", "Factory", "EngineModel", "NumPassengers", "VehicleModel", "EngineDisplacement", "DateOfManufacture", "Paint"},

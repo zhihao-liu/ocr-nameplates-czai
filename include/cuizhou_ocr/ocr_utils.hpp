@@ -7,15 +7,17 @@
 
 #include <fstream>
 #include <opencv2/core/core.hpp>
-#include "pvadetector.h"
+#include "detector.h"
 
 
 namespace cuizhou {
 
 class OcrUtils {
 public:
-    static void imResizeAndFill(cv::Mat& img, int newWidth, int newHeight);
-    static void imrotate(cv::Mat& img, cv::Mat& newImg, double angleInDegree);
+    static cv::Mat imgResizeAndFill(cv::Mat const& img, int newWidth, int newHeight);
+    static cv::Mat imgResizeAndFill(cv::Mat const& img, cv::Size const& newSize);
+    static cv::Mat imgRotate(cv::Mat const& img, double angleInDegree);
+
     static std::vector<std::string> readClassNames(std::string const& path);
 
     static int xMid(cv::Rect const& rect);
@@ -24,12 +26,12 @@ public:
     static int computeXOverlap(cv::Rect const& rect1, cv::Rect const& rect2);
     static int computeYOverlap(cv::Rect const& rect1, cv::Rect const& rect2);
     static int computeAreaIntersection(cv::Rect const& rect1, cv::Rect const& rect2);
-    static double computeIou(cv::Rect const& rect1, cv::Rect const& rect2);
+    static float computeIou(cv::Rect const& rect1, cv::Rect const& rect2);
     static int computeSpacing(cv::Rect const& rect1, cv::Rect const& rect2);
 
-    static cv::Rect validateWindow(cv::Rect const& window, int width, int height);
-    static cv::Rect validateWindow(cv::Rect const& roi, cv::Mat const& img);
-    static cv::Rect validateWindow(cv::Rect const& roi, cv::Rect const& extent);
+    static cv::Rect validateRoi(cv::Rect const& roi, int width, int height);
+    static cv::Rect validateRoi(cv::Rect const& roi, cv::Mat const& img);
+    static cv::Rect validateRoi(cv::Rect const& roi, cv::Rect const& extent);
 
     template<typename T, typename F> static double findMedian(std::vector<T> vec, F const& mapToNum);
     template<typename T, typename F> static double computeMean(std::vector<T> const& vec, F const& mapToNum);

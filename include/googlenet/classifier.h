@@ -19,17 +19,16 @@ public:
                const string& mean_file,
                const string& label_file);
 
-    std::vector<Prediction> classify(const cv::Mat &img, int N = 5);
+    std::vector<Prediction> classify(const cv::Mat &img, int N = 5) const;
 
 private:
     void setMean(const string &mean_file);
 
-    std::vector<float> predict(const cv::Mat &img);
+    std::vector<float> predict(const cv::Mat &img) const;
 
-    void wrapInputLayer(std::vector<cv::Mat> *input_channels);
+    void wrapInputLayer(std::vector<cv::Mat> *input_channels) const;
 
-    void preprocess(const cv::Mat &img,
-                    std::vector<cv::Mat> *input_channels);
+    void preprocess(const cv::Mat &img, std::vector<cv::Mat> *input_channels) const;
 
 private:
     shared_ptr<Net<float> > net_;

@@ -14,10 +14,10 @@
 
 
 namespace cuizhou {
+
 class OcrNameplates : public OcrHandler {
 protected:
     enum class NameplateField { UNKNOWN = -1, VIN = 0, MANUFACTURER, BRAND, MAX_MASS_ALLOWED, MAX_NET_POWER_OF_ENGINE, COUNTRY, FACTORY, ENGINE_MODEL, NUM_PASSENGERS, VEHICLE_MODEL, ENGINE_DISPLACEMENT, DATE_OF_MANUFACTURE, PAINT };
-    typedef ClassnameDict<NameplateField> NameplateFieldDict;
 public:
     virtual ~OcrNameplates() override = default;
     virtual void processImage() override = 0;
@@ -26,11 +26,12 @@ public:
 //    void printResultToFileInChinese(std::ofstream& outFile) const;
 
 protected:
-    static NameplateFieldDict const fieldDict_;
+    static ClassnameDict<NameplateField> const fieldDict_;
     std::map<NameplateField, KeyValuePair> result_;
 
     OcrNameplates() = default;
 };
+
 }
 
 
