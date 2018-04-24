@@ -11,12 +11,13 @@
 namespace cuizhou {
 
 struct DetectedItem {
-    std::string content;
+    std::string text;
     cv::Rect rect;
 
     ~DetectedItem() = default;
     DetectedItem() = default;
-    DetectedItem(std::string const& _content, cv::Rect const& _rect);
+    DetectedItem(std::string const& _text, cv::Rect const& _rect);
+    bool empty();
 };
 
 struct KeyValuePair {

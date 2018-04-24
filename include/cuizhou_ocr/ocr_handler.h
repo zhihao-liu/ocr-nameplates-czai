@@ -16,6 +16,7 @@ public:
     void setImage(cv::Mat const& image);
     cv::Mat const& image() const;
     virtual void processImage() = 0;
+    virtual cv::Mat drawResult() const = 0;
 
 protected:
     cv::Mat image_;

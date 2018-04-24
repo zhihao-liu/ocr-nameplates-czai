@@ -35,10 +35,6 @@ int main(int argc, char* argv[]) {
     string modelPvaValuesVin = "/home/cuizhou/lzh/models/pva_vin_value_chars_compressed/alfa_engnum_char_iter_100000.caffemodel";
     vector<string> classesPvaValuesVin = OcrUtils::readClassNames("/home/cuizhou/lzh/models/pva_vin_value_chars_compressed/classes_name.txt");
 
-    string ptPvaValuesOthers = "/home/cuizhou/lzh/models/pva_other_value_chars_compressed/test.prototxt";
-    string modelPvaValuesOthers = "/home/cuizhou/lzh/models/pva_other_value_chars_compressed/alfa_char_shape_pva_iter_100000.caffemodel";
-    vector<string> classesPvaValuesOthers = OcrUtils::readClassNames("/home/cuizhou/lzh/models/pva_other_value_chars_compressed/classes_name.txt");
-
     string ptPvaValuesStitched = "/home/cuizhou/lzh/models/pva_stitch_model/merge_svd.prototxt";
     string modelPvaValuesStitched = "/home/cuizhou/lzh/models/pva_stitch_model/stitch_name_plate_iter_100000_merge_svd.caffemodel";
     vector<string> classesPvaValuesStitched = OcrUtils::readClassNames("/home/cuizhou/lzh/models/pva_stitch_model/classes_name.txt");
@@ -56,17 +52,13 @@ int main(int argc, char* argv[]) {
     detectorValuesVin.init(ptPvaValuesVin, modelPvaValuesVin, classesPvaValuesVin);
     detectorValuesVin.setComputeMode("gpu", 0);
 
-    Detector detectorValuesOthers;
-    detectorValuesOthers.init(ptPvaValuesOthers, modelPvaValuesOthers, classesPvaValuesOthers);
-    detectorValuesOthers.setComputeMode("gpu", 0);
-    
     Detector detectorValuesStitched;
     detectorValuesStitched.init(ptPvaValuesStitched, modelPvaValuesStitched, classesPvaValuesStitched);
     detectorValuesStitched.setComputeMode("gpu", 0);
 
     Classifier classifier(ptGooglenet, modelGooglenet, meanGooglenet, classesGooglenet);
 
-    OcrNameplatesAlfa ocr(detectorKeys, detectorValuesVin, detectorValuesOthers, detectorValuesStitched, classifier);
+    OcrNameplatesAlfa ocr(detectorKeys, detectorValuesVin, detectorValuesStitched, classifier);
 
     auto start = std::chrono::system_clock::now();
     int countAll = 0, countCorrect = 0;
@@ -88,8 +80,7 @@ int main(int argc, char* argv[]) {
             cout << item << endl;
         }
 
-//        imshow("", ocr.image());
-        imshow("", d_imgToShow);
+        imshow("", ocr.drawResult());
         waitKey(0);
     }
 

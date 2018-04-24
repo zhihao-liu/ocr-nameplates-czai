@@ -21,7 +21,6 @@ public:
     OcrNameplatesAlfa() = default;
     OcrNameplatesAlfa(Detector const& detectorKeys,
                       Detector const& detectorValuesVin,
-                      Detector const& detectorValuesOthers,
                       Detector const& detectorValuesStitched,
                       Classifier const& classifierChars);
 
@@ -39,7 +38,6 @@ private:
 
     Detector detectorKeys_;
     Detector detectorValuesVin_; // used for VIN
-    Detector detectorValuesOthers_; // used for other values
     Detector detectorValuesStitched_; // used for detect other values in stitched sub-images
     Classifier classifierChars_;
 
@@ -49,16 +47,15 @@ private:
     void adaptiveRotationWithUpdatingKeyDetections();
 
     DetectedItem detectValue(NameplateField field);
-    DetectedItem detectValueOfVin();
-    DetectedItem detectValueOfOthers(NameplateField field);
+    void detectValueOfVin();
+    void detectValuesOfOtherCodeFields();
+    static void postprocessStitchedDetections(EnumHashMap<NameplateField, std::vector<Detection>>& stitchedDets);
 
     static cv::Rect estimateValueRoi(NameplateField field, cv::Rect const& keyRoi);
-    Collage<NameplateField> stitchValueSubimgs();
-
     static std::string joinDetectedChars(std::vector<Detection> const& dets);
 
     void addGapDetections(std::vector<Detection>& dets, cv::Rect const& roi);
-    void reexamineCharsWithLowConfidence(std::vector<Detection>& dets, cv::Mat const& subimg) const;
+    void updateByClassification(std::vector<Detection>& dets, cv::Mat const& srcImg) const;
     static void mergeOverlappedDetections(std::vector<Detection>& dets);
 
     static void sortByXMid(std::vector<Detection>& dets);
@@ -67,12 +64,11 @@ private:
     static bool isSortedByXMid(std::vector<Detection> const& dets);
 
     static void eliminateLetters(std::vector<Detection>& dets);
-    static std::string fallbackToNumber(std::string const& str);
+    static bool shouldContainLetters(NameplateField field);
     static bool containsUnambiguousNumberOne(Detection const& det1, Detection const& det2);
 
-    static void eliminateXOverlapsWithThresh(std::vector<Detection>& dets, std::pair<float, float> firstThresh, std::pair<float, float> secondThresh);
-    static void eliminateXOverlapsForVin(std::vector<Detection>& dets);
-    static void eliminateXOverlapsForOthers(std::vector<Detection>& dets);
+    static void eliminateXOverlaps(std::vector<Detection>& dets, std::pair<float, float> firstThresh, std::pair<float, float> secondThresh);
+    static void eliminateXOverlaps(std::vector<Detection>& dets, NameplateField field);
     static void eliminateYOutliers(std::vector<Detection>& dets);
 
     static cv::Rect computeExtent(std::vector<Detection> const& dets);
@@ -83,25 +79,8 @@ private:
     static bool isRoiTooLarge(cv::Rect const& roi, cv::Rect const& detsExtent);
     static cv::Rect adjustRoi(cv::Rect const& roi, cv::Rect const& detsExtent);
 
-    static std::string matchPaint(std::string const& str);
-    static std::string matchPaintWithLengthFixed(std::string const &str);
-
-    // -------- added by WRZ ------- //
-    DetectedItem detectValueOfMaxMassAllowed();
-    DetectedItem detectValueOfDateOfManufacture();
-    DetectedItem detectValueOfMaxNetPowerOfEngine();
-    DetectedItem detectValueOfEngineModel();
-    DetectedItem detectValueOfNumPassengers();
-    DetectedItem detectValueOfVehicleModel();
-    DetectedItem detectValueOfEngineDisplacement();
-    DetectedItem detectValueOfPaint();
-
-    static void commonDetectProcess(string& result, Detector& detectorValues, cv::Mat const& img, cv::Rect const& roi, int valueLength, bool containsLetters = false, float conf = 0.2, float iouThresh = 0.1);
-    static void commonDetectProcess(string& result, Detector& detectorValues, Classifier& classifier, cv::Mat const& img, cv::Rect const& roi, int valueLength, bool containsLetters = false, float conf = 0.2, float iouThresh=0.1);
-    static void commonDetectProcessForVehicleModel(string& result, Detector& detectorValues, cv::Mat const& img, cv::Rect const& roi, int valueLength, bool containsLetters = false, float conf = 0.2, float iouThresh = 0.1);
-    static void subCommonDetectProcess(Detector& detectorValues, cv::Mat const& img, cv::Rect const& roi, vector<Detection>& dets, bool containsLetters = false, float conf = 0.2, float iouThresh = 0.1);
-    static bool moveRoi(cv::Mat const& img, vector<Detection>& dets, cv::Rect const& roi, cv::Rect& newRoi);
-    static void cropImg(cv::Mat& input);
+//    static std::string matchPaint(std::string const& str);
+//    static std::string matchPaintWithLengthFixed(std::string const &str);
 };
 
 } // end namespace cuizhou

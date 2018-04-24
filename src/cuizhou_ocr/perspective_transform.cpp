@@ -48,15 +48,15 @@ PerspectiveTransform PerspectiveTransform::reversed() const {
 }
 
 cv::Point PerspectiveTransform::apply(cv::Point const& point) const {
-    return cv::Point(int(point.x * scaleX_ + offsetX_),
-                     int(point.y * scaleY_ + offsetY_));
+    return cv::Point(int(std::round(point.x * scaleX_ + offsetX_)),
+                     int(std::round(point.y * scaleY_ + offsetY_)));
 }
 
 cv::Rect PerspectiveTransform::apply(cv::Rect const& rect) const {
-    return cv::Rect(int(rect.x * scaleX_ + offsetX_),
-                    int(rect.y * scaleY_ + offsetY_),
-                    int(rect.width * scaleX_),
-                    int(rect.height * scaleY_));
+    return cv::Rect(int(std::round(rect.x * scaleX_ + offsetX_)),
+                    int(std::round(rect.y * scaleY_ + offsetY_)),
+                    int(std::round(rect.width * scaleX_)),
+                    int(std::round(rect.height * scaleY_)));
 }
 
 PerspectiveTransform PerspectiveTransform::merge(PerspectiveTransform const& tr1, PerspectiveTransform const& tr2) {

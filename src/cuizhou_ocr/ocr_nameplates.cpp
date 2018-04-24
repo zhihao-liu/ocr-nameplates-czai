@@ -3,6 +3,7 @@
 //
 
 #include "ocr_nameplates.h"
+#include <opencv2/imgproc/imgproc.hpp>
 
 
 namespace cuizhou {
@@ -23,11 +24,24 @@ std::vector<KeyValuePair> OcrNameplates::getResultAsArray() const {
     return resultVector;
 }
 
+cv::Mat OcrNameplates::drawResult() const {
+    cv::Mat imgToShow = image_.clone();
+    cv::Scalar clrKeyRect(0, 0, 255);
+    cv::Scalar clrValueRect(0, 255, 255);
+
+    for (auto const& item : result_) {
+        cv::rectangle(imgToShow, item.second.key.rect, clrKeyRect);
+        cv::rectangle(imgToShow, item.second.value.rect, clrValueRect);
+    }
+
+    return imgToShow;
+}
+
 //void OcrNameplates::printResultToConsoleInChinese() const {
 //    result_.printResultToConsole([](std::string const& key) {
 //        auto itrKeyMapped = CLASSNAME_ENG_TO_CHN.find(key);
 //        return itrKeyMapped == CLASSNAME_ENG_TO_CHN.end() ?
-//               "" : itrKeyMapped->second;
+//               std::string() : itrKeyMapped->second;
 //    });
 //}
 //
@@ -35,7 +49,7 @@ std::vector<KeyValuePair> OcrNameplates::getResultAsArray() const {
 //    result_.printResultToFile(outFile, [](std::string const& key) {
 //        auto itrKeyMapped = CLASSNAME_ENG_TO_CHN.find(key);
 //        return itrKeyMapped == CLASSNAME_ENG_TO_CHN.end() ?
-//               "" : itrKeyMapped->second;
+//               std::string() : itrKeyMapped->second;
 //    });
 //}
 

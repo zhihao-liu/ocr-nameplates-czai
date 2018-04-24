@@ -31,9 +31,7 @@ public:
     Collage() = default;
 
     Collage(cv::Mat const& image,
-            std::vector<FieldEnum> const& fields,
-            std::vector<cv::Rect> const& originRois,
-            std::vector<cv::Rect> const& targetRois,
+            EnumHashMap<FieldEnum, std::pair<cv::Rect, cv::Rect>> const& roiMapping,
             cv::Size const& resultSize);
 
     cv::Mat const& image() const { return resultImage_; };
@@ -48,38 +46,26 @@ private:
 
 template<typename FieldEnum>
 Collage<FieldEnum>::Collage(cv::Mat const& image,
-                            std::vector<FieldEnum> const& fields,
-                            std::vector<cv::Rect> const& originRois,
-                            std::vector<cv::Rect> const& targetRois,
+                            EnumHashMap<FieldEnum, std::pair<cv::Rect, cv::Rect>> const& roiMapping,
                             cv::Size const& resultSize) {
-    assert(fields.size() == originRois.size() && fields.size() == targetRois.size());
-
     cv::Mat resultImg(resultSize, CV_8UC3, cv::Scalar(0, 0, 0));
 
-    for (int i = 0; i < fields.size(); ++i) {
-        PerspectiveTransform imgToSubimg(1, -originRois[i].x, -originRois[i].y);
+    for (auto const& item : roiMapping) {
+        FieldEnum field = item.first;
+        cv::Rect const& originRoi = item.second.first;
+        cv::Rect const& targetRoi = item.second.second;
+
+        PerspectiveTransform imgToSubimg(1, -originRoi.x, -originRoi.y);
         PerspectiveTransform subimgToTarget;
-        PerspectiveTransform targetToResultImg(1, targetRois[i].x, targetRois[i].y);
+        PerspectiveTransform targetToResultImg(1, targetRoi.x, targetRoi.y);
 
-        cv::Mat resized = OcrUtils::imgResizeAndFill(image(originRois[i]), targetRois[i].size(), &subimgToTarget);
-        resized.copyTo(resultImg(targetRois[i]));
+        cv::Mat resized = OcrUtils::imgResizeAndFill(image(originRoi), targetRoi.size(), &subimgToTarget);
+        resized.copyTo(resultImg(targetRoi));
 
-        TransformedRoiInfo roiInfo(targetRois[i],
+        TransformedRoiInfo roiInfo(targetRoi,
                                    imgToSubimg.mergedWith(subimgToTarget).mergedWith(targetToResultImg));
-        targetRoisInfo.emplace(fields[i], roiInfo);
 
-        // DEUBG
-        {
-            using namespace std;
-            cout << "~~~~~~" << endl;
-            cout << "TR1 -- " << imgToSubimg << endl;
-            cout << "TR2 -- " << subimgToTarget << endl;
-            cout << "TR3 -- " << targetToResultImg << endl;
-            auto merged = imgToSubimg.mergedWith(subimgToTarget).mergedWith(targetToResultImg);
-            cout << "MRG -- " << merged << endl;
-            cout << "BKD -- " << merged.reversed() << endl;
-            cout << "~~~~~~" << endl;
-        }
+        targetRoisInfo.emplace(field, roiInfo);
     }
 
     resultImage_ = resultImg;
@@ -94,12 +80,6 @@ Collage<FieldEnum>::splitDetections(std::vector<Detection> const& dets, float ov
         for (auto const& det : dets) {
             if (OcrUtils::computeAreaIntersection(det.getRect(), roiInfo.second.roi) > overlapThresh * det.getRect().area()) {
                 Detection detCopy = det;
-                //DEBUG
-                {
-                    using namespace std;
-                    cout << "TBKD -- " << backwardTransform << endl;
-                    cout << "RECT -- " << det.getRect() << endl;
-                }
                 detCopy.setRect(backwardTransform.apply(det.getRect()));
                 splitResult[roiInfo.first].push_back(detCopy);
             }

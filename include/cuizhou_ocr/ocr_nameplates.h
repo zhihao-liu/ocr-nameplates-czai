@@ -21,6 +21,8 @@ protected:
 public:
     virtual ~OcrNameplates() override = default;
     virtual void processImage() override = 0;
+    virtual cv::Mat drawResult() const override;
+
     std::vector<KeyValuePair> getResultAsArray() const;
 //    void printResultToConsoleInChinese() const;
 //    void printResultToFileInChinese(std::ofstream& outFile) const;
