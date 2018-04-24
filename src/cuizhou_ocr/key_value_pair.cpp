@@ -13,7 +13,7 @@ DetectedItem::DetectedItem(std::string const& _content, cv::Rect const& _rect)
 KeyValuePair::KeyValuePair(DetectedItem const& _key, DetectedItem const& _value)
         : key(_key), value(_value) {}
 
-std::ostream& operator<< (std::ostream& strm, KeyValuePair const& obj) {
+std::ostream& operator<<(std::ostream& strm, KeyValuePair const& obj) {
     return strm << obj.key.content << ": " << obj.value.content;
 }
 

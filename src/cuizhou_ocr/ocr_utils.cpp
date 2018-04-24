@@ -10,11 +10,17 @@
 
 namespace cuizhou {
 
-cv::Mat OcrUtils::imgResizeAndFill(cv::Mat const& img, cv::Size const& newSize) {
-    return imgResizeAndFill(img, newSize.width, newSize.height);
+cv::Mat OcrUtils::imgResizeAndFill(cv::Mat const& img,
+                                   cv::Size const& newSize,
+                                   PerspectiveTransform* pForwardTransform) {
+    return imgResizeAndFill(img, newSize.width, newSize.height, pForwardTransform);
 }
 
-cv::Mat OcrUtils::imgResizeAndFill(cv::Mat const& img, int newWidth, int newHeight) {
+// resize the image while preserve its width-height ratio
+// save the transform parameters into pForwardTransform if it is non-null
+cv::Mat OcrUtils::imgResizeAndFill(cv::Mat const& img,
+                                   int newWidth, int newHeight,
+                                   PerspectiveTransform* pForwardTransform) {
     if (img.cols == newWidth && img.rows == newHeight) return img.clone();
 
     cv::Mat newImg(newHeight, newWidth, CV_8UC3, cv::Scalar(0, 0, 0));;
@@ -29,6 +35,11 @@ cv::Mat OcrUtils::imgResizeAndFill(cv::Mat const& img, int newWidth, int newHeig
     int xShift = (newImg.cols - tempImg.cols) / 2;
     int yShift = (newImg.rows - tempImg.rows) / 2;
     tempImg.copyTo(newImg(cv::Rect(xShift, yShift, tempImg.cols, tempImg.rows)));
+
+    if (pForwardTransform) {
+        pForwardTransform->setOffset(xShift, yShift);
+        pForwardTransform->setScale(unifiedScale);
+    }
 
     return newImg;
 }

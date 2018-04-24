@@ -16,8 +16,8 @@ public:
     ~Detection();
 
     //Interface
-    std::string getClass() const;
-    cv::Rect getRect() const;
+    std::string const& getClass() const;
+    cv::Rect const& getRect() const;
     float getScore() const;
 
     void setClass(const std::string& cls);

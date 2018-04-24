@@ -54,16 +54,21 @@ void OcrNameplatesAlfa::processImage() {
     
     // DEBUG
     auto d_stiched = stitchValueSubimgs();
-    d_imgToShow = d_stiched.image();
+    d_imgToShow = image_.clone();
     detectorValuesStitched_.setThresh(0.05, 0.3);
-    auto d_dets = detectorValuesStitched_.detect(d_imgToShow);
-//    detectorValuesOthers_.setThresh(0.05, 0.3);
-//    auto d_dets = detectorValuesOthers_.detect(d_imgToShow);
+    auto d_dets = detectorValuesStitched_.detect(d_stiched.image());
     sortByXMid(d_dets);
     eliminateXOverlapsForOthers(d_dets);
-//    eliminateYOutliers(d_dets);
+    auto d_splitResults = d_stiched.splitDetections(d_dets);
+    for (auto const& res : d_splitResults) {
+        cv::Scalar clr(std::rand() % 256, std::rand() % 256, std::rand() % 256);
+        for (auto const& det : res.second) {
+            cv::rectangle(d_imgToShow, det.getRect(), clr, 2);
+            std::cout << "RECT: " << det.getClass() << " -- " << det.getRect() << std::endl;
+        }
+    }
     std::cout << "DEBUG -- Dets Count: " << d_dets.size() << std::endl;
-    Detector::drawBox(d_imgToShow, d_dets);
+    // END_DEBUG
 
     for (auto const& keyItem : keyDetectedItems_) {
         DetectedItem valueItem;
@@ -87,13 +92,6 @@ void OcrNameplatesAlfa::processImage() {
 
         result_.emplace(keyItem.first, KeyValuePair(keyItem.second, valueItem));
     }
-
-    // DEBUG
-//    d_imgToShow = image_.clone();
-//    for (auto const& item : result_) {
-//        cv::rectangle(d_imgToShow, item.second.key.rect, cv::Scalar(0, 0, 255), 2);
-//        cv::rectangle(d_imgToShow, item.second.value.rect, cv::Scalar(0, 255, 255), 2);
-//    }
 }
 
 void OcrNameplatesAlfa::detectKeys() {
@@ -293,25 +291,24 @@ cv::Rect OcrNameplatesAlfa::estimateValueRoi(NameplateField field, cv::Rect cons
     }
 }
 
-cv::Mat OcrNameplatesAlfa::getValueSubimg(NameplateField field) {
-    auto itrKeyItem = keyDetectedItems_.find(field);
-    if (itrKeyItem == keyDetectedItems_.end()) return cv::Mat();
-
-    cv::Rect valueRoi = estimateValueRoi(field, itrKeyItem->second.rect);
-    valueRoi = OcrUtils::validateRoi(valueRoi, image_);
-    return image_(valueRoi);
-}
-
 Collage<OcrNameplatesAlfa::NameplateField> OcrNameplatesAlfa::stitchValueSubimgs() {
-    std::vector<NameplateField> fieldArray = {NameplateField::ENGINE_MODEL, NameplateField::VEHICLE_MODEL, NameplateField::MAX_MASS_ALLOWED, NameplateField::MAX_NET_POWER_OF_ENGINE, NameplateField::ENGINE_DISPLACEMENT, NameplateField::DATE_OF_MANUFACTURE, NameplateField::NUM_PASSENGERS, NameplateField::PAINT};
-    std::vector<cv::Rect> roiArray = {cv::Rect(0, 0, 396, 320), cv::Rect(0, 320, 396, 320), cv::Rect(396, 0, 264, 320), cv::Rect(396, 320, 264, 320), cv::Rect(660, 0, 264, 320), cv::Rect(660, 320, 264, 320), cv::Rect(924, 0, 132, 320), cv::Rect(924, 320, 132, 320)};
+    std::vector<NameplateField> fields = {NameplateField::ENGINE_MODEL, NameplateField::VEHICLE_MODEL, NameplateField::MAX_MASS_ALLOWED, NameplateField::MAX_NET_POWER_OF_ENGINE, NameplateField::ENGINE_DISPLACEMENT, NameplateField::DATE_OF_MANUFACTURE, NameplateField::NUM_PASSENGERS, NameplateField::PAINT};
+    std::vector<cv::Rect> targetRois = {cv::Rect(0, 0, 396, 320), cv::Rect(0, 320, 396, 320), cv::Rect(396, 0, 264, 320), cv::Rect(396, 320, 264, 320), cv::Rect(660, 0, 264, 320), cv::Rect(660, 320, 264, 320), cv::Rect(924, 0, 132, 320), cv::Rect(924, 320, 132, 320)};
 
-    std::vector<cv::Mat> subimgArray;
-    std::transform(fieldArray.cbegin(), fieldArray.cend(), std::back_inserter(subimgArray),
-                   [&](NameplateField field) { return getValueSubimg(field); });
+    std::vector<cv::Rect> originRois;
+    std::transform(fields.cbegin(), fields.cend(), std::back_inserter(originRois),
+                   [&](NameplateField field) {
+                        auto itrKeyItem = keyDetectedItems_.find(field);
+                        cv::Rect valueRoi;
+                        if (itrKeyItem != keyDetectedItems_.end()) {
+                            valueRoi = estimateValueRoi(field, itrKeyItem->second.rect);
+                            valueRoi = OcrUtils::validateRoi(valueRoi, image_);
+                        }
+                        return valueRoi;
+    });
 
 
-    return Collage<NameplateField>(fieldArray, subimgArray, roiArray, cv::Size(1056, 640));
+    return Collage<NameplateField>(image_, fields, originRois, targetRois, cv::Size(1056, 640));
 }
 
 void OcrNameplatesAlfa::sortByXMid(std::vector<Detection>& dets) {
@@ -354,9 +351,9 @@ void OcrNameplatesAlfa::eliminateYOutliers(std::vector<Detection>& dets) {
     if (dets.size() < 3) return;
 
     // remove those lies off the horizontal reference line
-    int heightRef = int(OcrUtils::findMedian(dets, [](Detection const& det) { return det.getRect().height; }));
+    int heightRef = OcrUtils::findMedian(dets, [](Detection const& det) { return det.getRect().height; });
 
-    int yMidRef = int(OcrUtils::findMedian(dets, [](Detection const& det) { return OcrUtils::yMid(det.getRect()); }));
+    int yMidRef = OcrUtils::findMedian(dets, [](Detection const& det) { return OcrUtils::yMid(det.getRect()); });
 
     for (auto itr = dets.begin(); itr != dets.end();) {
         if (std::abs(OcrUtils::yMid(itr->getRect()) - yMidRef) > 0.25 * heightRef) {
@@ -487,7 +484,7 @@ int OcrNameplatesAlfa::estimateCharSpacing(std::vector<Detection> const& dets) {
         spacings.push_back(spacing);
     }
 
-    return int(OcrUtils::findMedian(spacings, [](int spacing) { return spacing; }));
+    return OcrUtils::findMedian(spacings, [](int spacing) { return spacing; });
 }
 
 void OcrNameplatesAlfa::addGapDetections(std::vector<Detection>& dets, cv::Rect const& roi) {
@@ -747,12 +744,12 @@ DetectedItem OcrNameplatesAlfa::detectValueOfNumPassengers() {
         temp2.insert(temp2.end(), temp1.begin(), std::next(temp1.begin()));
         sortByXMid(temp2);
         for (auto const& det : temp2) {
-            result += det.getClass();
+            result.append(det.getClass());
         }
     } else {
         temp2 = temp1;
         for (auto const& det : temp2) {
-            result += det.getClass();
+            result.append(det.getClass());
         }
     }
 
@@ -867,8 +864,8 @@ void OcrNameplatesAlfa::commonDetectProcess(string& result, Detector& detectorVa
     if (temp1.size() == valueLength) {
         temp2 = temp1;
         for (auto const& det : temp2) {
-            if (det.getClass() == "Z") result += "7";
-            else result += det.getClass();
+            if (det.getClass() == "Z") result.append("7");
+            else result.append(det.getClass());
         }
     } else {
         isMoved = moveRoi(img, temp1, roi, roiMoved);
@@ -881,16 +878,16 @@ void OcrNameplatesAlfa::commonDetectProcess(string& result, Detector& detectorVa
             temp3.insert(temp3.end(), temp2.begin(), temp2.begin() + valueLength);
             sortByXMid(temp3);
             for (auto const& det : temp3) {
-                if (det.getClass() == "Z") result += "7";
-                else result += det.getClass();
+                if (det.getClass() == "Z") result.append("7");
+                else result.append(det.getClass());
             }
             temp2.clear();
             temp2.insert(temp2.end(), temp3.begin(), temp3.end());
         } else if (temp2.size() <= valueLength) {
             sortByXMid(temp2);
             for (auto const& det : temp2) {
-                if (det.getClass() == "Z") result += "7";
-                else result += det.getClass();
+                if (det.getClass() == "Z") result.append("7");
+                else result.append(det.getClass());
             }
         }
     }
@@ -914,8 +911,8 @@ void OcrNameplatesAlfa::commonDetectProcess(string& result, Detector& detectorVa
     if (temp1.size() == valueLength) {
         temp2 = temp1;
         for (auto const& det : temp2) {
-            if (det.getClass() == "Z") result += "7";
-            else result += det.getClass();
+            if (det.getClass() == "Z") result.append("7");
+            else result.append(det.getClass());
         }
     } else {
         isMoved = moveRoi(img, temp1, roi, roiMoved);
@@ -949,12 +946,12 @@ void OcrNameplatesAlfa::commonDetectProcess(string& result, Detector& detectorVa
         vector<Prediction> pre = classifier.classify(cropImg, 1);
         if (det.getScore() < 0.99) {
             if (pre[0].second < 0.85 || !OcrUtils::isNumbericChar(pre[0].first)) {
-                result += det.getClass();
+                result.append(det.getClass());
             } else {
-                result += pre[0].first;
+                result.append(pre[0].first);
             }
         } else {
-            result += det.getClass();
+            result.append(det.getClass());
         }
     }
 }
@@ -978,8 +975,8 @@ void OcrNameplatesAlfa::commonDetectProcessForVehicleModel(string& result, Detec
     if (temp1.size() == valueLength) {
         temp2 = temp1;
         for (auto const& det : temp2) {
-            if (det.getClass() == "Z") result += "7";
-            else result += det.getClass();
+            if (det.getClass() == "Z") result.append("7");
+            else result.append(det.getClass());
         }
     } else {
         isMoved = moveRoi(img, temp1, roi, roiMoved);
@@ -991,16 +988,16 @@ void OcrNameplatesAlfa::commonDetectProcessForVehicleModel(string& result, Detec
             temp3.insert(temp3.end(), temp2.begin(), temp2.begin() + valueLength);
             sortByXMid(temp3);
             for (int i = 0; i < valueLength; ++i) {
-                if (temp3[i].getClass() == "Z") result += "7";
-                else result += temp3[i].getClass();
+                if (temp3[i].getClass() == "Z") result.append("7");
+                else result.append(temp3[i].getClass());
             }
             temp2.clear();
             temp2.insert(temp2.end(), temp3.begin(), temp3.end());
         } else if (temp2.size() <= valueLength) {
             sortByXMid(temp2);
             for (auto const& det : temp2) {
-                if (det.getClass() == "Z") result += "7";
-                else result += det.getClass();
+                if (det.getClass() == "Z") result.append("7");
+                else result.append(det.getClass());
             }
         }
     }

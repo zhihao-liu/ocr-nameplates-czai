@@ -15,31 +15,31 @@
 
 namespace cuizhou {
 
-template<typename EnumType>
+template<typename EnumClass>
 class ClassnameDict {
-    static_assert(std::is_enum<EnumType>::value, "Template class \"ClassnameDict\" only support enum types as template parameters!");
+    static_assert(std::is_enum<EnumClass>::value, "Template class \"ClassnameDict\" only support enum types as template parameters!");
 public:
     ~ClassnameDict() = default;
     ClassnameDict() = default;
-    ClassnameDict(std::vector<EnumType> const& enums, EnumType fallbackEnum,
+    ClassnameDict(std::vector<EnumClass> const& enums, EnumClass fallbackEnum,
                   std::vector<std::string> const& names, std::string const& fallbackName,
                   std::vector<std::string> const& aliases = std::vector<std::string>(), std::string const& fallbackAlias = "");
 
-    EnumType toEnum(std::string const& name) const;
-    std::string getName(EnumType enumElem) const;
-    std::string getAlias(EnumType enumElem) const;
+    EnumClass toEnum(std::string const& name) const;
+    std::string getName(EnumClass enumItem) const;
+    std::string getAlias(EnumClass enumItem) const;
 private:
-    std::unordered_map< EnumType, std::string, EnumHasher<EnumType> > enumToName_;
-    std::unordered_map<std::string, EnumType> nameToEnum_;
-    std::unordered_map< EnumType, std::string, EnumHasher<EnumType> > enumToAlias_;
+    std::unordered_map<EnumClass, std::string, EnumHasher<EnumClass>> enumToName_;
+    std::unordered_map<std::string, EnumClass> nameToEnum_;
+    std::unordered_map<EnumClass, std::string, EnumHasher<EnumClass>> enumToAlias_;
 
-    EnumType const fallbackEnum_;
+    EnumClass const fallbackEnum_;
     std::string const fallbackName_;
     std::string const fallbackAlias_;
 };
 
-template<typename EnumType>
-ClassnameDict<EnumType>::ClassnameDict(std::vector<EnumType> const& enums, EnumType fallbackEnum,
+template<typename EnumClass>
+ClassnameDict<EnumClass>::ClassnameDict(std::vector<EnumClass> const& enums, EnumClass fallbackEnum,
                                        std::vector<std::string> const& names, std::string const& fallbackName,
                                        std::vector<std::string> const& aliases, std::string const& fallbackAlias)
         : fallbackEnum_(fallbackEnum),
@@ -54,21 +54,21 @@ ClassnameDict<EnumType>::ClassnameDict(std::vector<EnumType> const& enums, EnumT
     }
 }
 
-template<typename EnumType>
-EnumType ClassnameDict<EnumType>::toEnum(std::string const& name) const {
+template<typename EnumClass>
+EnumClass ClassnameDict<EnumClass>::toEnum(std::string const& name) const {
     auto itr = nameToEnum_.find(name);
     return itr == nameToEnum_.end() ? fallbackEnum_ : itr->second;
 }
 
-template<typename EnumType>
-std::string ClassnameDict<EnumType>::getName(EnumType enumElem) const {
-    auto itr = enumToName_.find(enumElem);
+template<typename EnumClass>
+std::string ClassnameDict<EnumClass>::getName(EnumClass enumItem) const {
+    auto itr = enumToName_.find(enumItem);
     return itr == enumToName_.end() ? fallbackName_ : itr->second;
 }
 
-template<typename EnumType>
-std::string ClassnameDict<EnumType>::getAlias(EnumType enumElem) const {
-    auto itr = enumToAlias_.find(enumElem);
+template<typename EnumClass>
+std::string ClassnameDict<EnumClass>::getAlias(EnumClass enumItem) const {
+    auto itr = enumToAlias_.find(enumItem);
     return itr == enumToAlias_.end() ? fallbackAlias_ : itr->second;
 }
 

@@ -53,7 +53,6 @@ private:
     DetectedItem detectValueOfOthers(NameplateField field);
 
     static cv::Rect estimateValueRoi(NameplateField field, cv::Rect const& keyRoi);
-    cv::Mat getValueSubimg(NameplateField field);
     Collage<NameplateField> stitchValueSubimgs();
 
     static std::string joinDetectedChars(std::vector<Detection> const& dets);

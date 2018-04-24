@@ -10,8 +10,7 @@
 
 namespace cuizhou {
 
-class DetectedItem {
-public:
+struct DetectedItem {
     std::string content;
     cv::Rect rect;
 
@@ -20,8 +19,7 @@ public:
     DetectedItem(std::string const& _content, cv::Rect const& _rect);
 };
 
-class KeyValuePair {
-public:
+struct KeyValuePair {
     DetectedItem key;
     DetectedItem value;
 
@@ -29,7 +27,7 @@ public:
     KeyValuePair() = default;
     KeyValuePair(DetectedItem const& _key, DetectedItem const& _value);
 
-    friend std::ostream& operator<< (std::ostream& strm, KeyValuePair const& obj);
+    friend std::ostream& operator<<(std::ostream& strm, KeyValuePair const& obj);
 };
 
 } // end namespace cuizhou

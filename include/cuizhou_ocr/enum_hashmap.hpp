@@ -12,17 +12,17 @@
 
 namespace cuizhou {
 
-template<typename EnumType>
+template<typename EnumClass>
 struct EnumHasher {
-    static_assert(std::is_enum<EnumType>::value, "Struct \"EnumHasher\" only supports enum types as template parameters.");
-    size_t operator() (EnumType enumElem) const {
-        using EnumData = typename std::underlying_type<EnumType>::type;
+    static_assert(std::is_enum<EnumClass>::value, "Struct \"EnumHasher\" only supports enum types as template parameters.");
+    size_t operator() (EnumClass enumElem) const {
+        using EnumData = typename std::underlying_type<EnumClass>::type;
         return std::hash<EnumData>()(static_cast<EnumData>(enumElem));
     }
 };
 
-template<typename EnumType, typename ValType>
-using EnumHashMap = std::unordered_map< EnumType, ValType, EnumHasher<EnumType> >;
+template<typename EnumClass, typename Val>
+using EnumHashMap = std::unordered_map<EnumClass, Val, EnumHasher<EnumClass>>;
 
 } // end namespace cuizhou
 
