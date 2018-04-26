@@ -54,14 +54,14 @@ cv::Mat OcrUtils::imgRotate(cv::Mat const& img, double angleInDegree) {
     return newImg;
 }
 
-std::vector<std::string> OcrUtils::readClassNames(std::string const& path) {
+std::vector<std::string> OcrUtils::readClassNames(std::string const& path, bool addBackground) {
     std::ifstream file(path);
     std::vector<std::string> classNames;
-    classNames.emplace_back("__background__");
+    if (addBackground) classNames.emplace_back("__background__");
 
     std::string line;
     while (getline(file, line)) {
-        classNames.push_back(line);
+        classNames.push_back(std::move(line));
     }
     return classNames;
 };
@@ -108,25 +108,6 @@ float OcrUtils::computeIou(cv::Rect const& rect1, cv::Rect const& rect2) {
 
 int OcrUtils::computeSpacing(cv::Rect const& rect1, cv::Rect const& rect2) {
     return std::abs(xMid(rect1) - xMid(rect2));
-}
-
-cv::Rect OcrUtils::validateRoi(cv::Rect const& roi, int width, int height) {
-    int newX = std::min(std::max(roi.x, 0), width - 1);
-    int newY = std::min(std::max(roi.y, 0), height - 1);
-    int newW = std::min(std::max(roi.width, 1), width - newX);
-    int newH = std::min(std::max(roi.height, 1), height - newY);
-
-    return cv::Rect(newX, newY, newW, newH);
-}
-
-cv::Rect OcrUtils::validateRoi(cv::Rect const& roi, cv::Mat const& img) {
-    // ensure the roi is within the extent of the image after adjustments
-    return validateRoi(roi, img.cols, img.rows);
-}
-
-cv::Rect OcrUtils::validateRoi(cv::Rect const& roi, cv::Rect const& extent) {
-    // ensure the roi is within the extent of the image after adjustments
-    return validateRoi(roi, extent.width, extent.height);
 }
 
 LeastSquare::LeastSquare(std::vector<double> const& x, std::vector<double> const& y) {

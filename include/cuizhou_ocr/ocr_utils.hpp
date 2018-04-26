@@ -25,7 +25,7 @@ public:
 
     static cv::Mat imgRotate(cv::Mat const& img, double angleInDegree);
 
-    static std::vector<std::string> readClassNames(std::string const& path);
+    static std::vector<std::string> readClassNames(std::string const& path, bool addBackground = false);
 
     static int xMid(cv::Rect const& rect);
     static int yMid(cv::Rect const& rect);
@@ -36,9 +36,9 @@ public:
     static float computeIou(cv::Rect const& rect1, cv::Rect const& rect2);
     static int computeSpacing(cv::Rect const& rect1, cv::Rect const& rect2);
 
-    static cv::Rect validateRoi(cv::Rect const& roi, int width, int height);
-    static cv::Rect validateRoi(cv::Rect const& roi, cv::Mat const& img);
-    static cv::Rect validateRoi(cv::Rect const& roi, cv::Rect const& extent);
+    template<typename Rect> static Rect&& validateRoi(Rect&& roi, int width, int height);
+    template<typename Rect> static Rect&& validateRoi(Rect&& roi, cv::Mat const& img);
+    template<typename Rect> static Rect&& validateRoi(Rect&& roi, cv::Rect const& extent);
 
     template<typename Item>
     static Item findMedian(std::vector<Item> const& vec);
@@ -110,6 +110,28 @@ auto OcrUtils::computeMean(std::vector<Item> const& vec, Func&& toNumber) -> typ
 
     return sum / vec.size();
 };
+
+template<typename Rect>
+Rect&& OcrUtils::validateRoi(Rect&& roi, int width, int height) {
+    roi.x = std::min(std::max(roi.x, 0), width - 1);
+    roi.y = std::min(std::max(roi.y, 0), height - 1);
+    roi.width = std::min(std::max(roi.width, 1), width - roi.x);
+    roi.height = std::min(std::max(roi.height, 1), height - roi.y);
+
+    return roi;
+}
+
+template<typename Rect>
+Rect&& OcrUtils::validateRoi(Rect&& roi, cv::Mat const& img) {
+    // ensure the roi is within the extent of the image after adjustments
+    return validateRoi(roi, img.cols, img.rows);
+}
+
+template<typename Rect>
+Rect&& OcrUtils::validateRoi(Rect&& roi, cv::Rect const& extent) {
+    // ensure the roi is within the extent of the image after adjustments
+    return validateRoi(roi, extent.width, extent.height);
+}
 
 } // end namespace cuizhou
 

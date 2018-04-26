@@ -19,10 +19,10 @@ class OcrNameplatesAlfa final : public OcrNameplates {
 public:
     ~OcrNameplatesAlfa() override = default;
     OcrNameplatesAlfa() = default;
-    OcrNameplatesAlfa(Detector const& detectorKeys,
-                      Detector const& detectorValuesVin,
-                      Detector const& detectorValuesStitched,
-                      Classifier const& classifierChars);
+    OcrNameplatesAlfa(Detector detectorKeys,
+                      Detector detectorValuesVin,
+                      Detector detectorValuesStitched,
+                      Classifier classifierChars);
 
     virtual void processImage() override;
 
@@ -41,12 +41,12 @@ private:
     Detector detectorValuesStitched_; // used for detect other values in stitched sub-images
     Classifier classifierChars_;
 
-    std::map<NameplateField, DetectedItem> keyDetectedItems_;
+    std::map<NameplateField, OcrDetection> keyOcrDetections_;
 
     void detectKeys();
     void adaptiveRotationWithUpdatingKeyDetections();
 
-    DetectedItem detectValue(NameplateField field);
+    OcrDetection detectValue(NameplateField field);
     void detectValueOfVin();
     void detectValuesOfOtherCodeFields();
     static void postprocessStitchedDetections(EnumHashMap<NameplateField, std::vector<Detection>>& stitchedDets);
@@ -75,9 +75,9 @@ private:
     static double estimateCharAlignmentSlope(std::vector<Detection> const& dets);
     static int estimateCharSpacing(std::vector<Detection> const& dets);
 
-    static cv::Rect expandRoi(cv::Rect const& roi, std::vector<Detection> const& dets);
+    static cv::Rect& expandRoi(cv::Rect& roi, std::vector<Detection> const& dets);
     static bool isRoiTooLarge(cv::Rect const& roi, cv::Rect const& detsExtent);
-    static cv::Rect adjustRoi(cv::Rect const& roi, cv::Rect const& detsExtent);
+    static cv::Rect& adjustRoi(cv::Rect& roi, cv::Rect const& detsExtent);
 
 //    static std::string matchPaint(std::string const& str);
 //    static std::string matchPaintWithLengthFixed(std::string const &str);

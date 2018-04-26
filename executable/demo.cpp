@@ -29,20 +29,20 @@ int main(int argc, char* argv[]) {
 
     string ptPvaKeys = "/home/cuizhou/lzh/models/pva_keys_compressed/test.prototxt";
     string modelPvaKeys = "/home/cuizhou/lzh/models/pva_keys_compressed/car_brand_iter_100000.caffemodel";
-    vector<string> classesPvaKeys = OcrUtils::readClassNames("/home/cuizhou/lzh/models/pva_keys_compressed/classes_name.txt");
+    vector<string> classesPvaKeys = OcrUtils::readClassNames("/home/cuizhou/lzh/models/pva_keys_compressed/classes_name.txt", true);
 
     string ptPvaValuesVin = "/home/cuizhou/lzh/models/pva_vin_value_chars_compressed/test.prototxt";
     string modelPvaValuesVin = "/home/cuizhou/lzh/models/pva_vin_value_chars_compressed/alfa_engnum_char_iter_100000.caffemodel";
-    vector<string> classesPvaValuesVin = OcrUtils::readClassNames("/home/cuizhou/lzh/models/pva_vin_value_chars_compressed/classes_name.txt");
+    vector<string> classesPvaValuesVin = OcrUtils::readClassNames("/home/cuizhou/lzh/models/pva_vin_value_chars_compressed/classes_name.txt", true);
 
     string ptPvaValuesStitched = "/home/cuizhou/lzh/models/pva_stitch_model/merge_svd.prototxt";
     string modelPvaValuesStitched = "/home/cuizhou/lzh/models/pva_stitch_model/stitch_name_plate_iter_100000_merge_svd.caffemodel";
-    vector<string> classesPvaValuesStitched = OcrUtils::readClassNames("/home/cuizhou/lzh/models/pva_stitch_model/classes_name.txt");
+    vector<string> classesPvaValuesStitched = OcrUtils::readClassNames("/home/cuizhou/lzh/models/pva_stitch_model/classes_name.txt", true);
 
     string ptGooglenet = "/home/cuizhou/lzh/models/googlenet_chars/deploy.prototxt";
     string modelGooglenet = "/home/cuizhou/lzh/models/googlenet_chars/model_googlenet_iter_38942.caffemodel";
     string meanGooglenet = "/home/cuizhou/lzh/models/googlenet_chars/mean.binaryproto";
-    string classesGooglenet = "/home/cuizhou/lzh/models/googlenet_chars/classname.txt";
+    vector<string> classesGooglenet = OcrUtils::readClassNames("/home/cuizhou/lzh/models/googlenet_chars/classname.txt");
 
     Detector detectorKeys;
     detectorKeys.init(ptPvaKeys, modelPvaKeys, classesPvaKeys);
@@ -56,7 +56,8 @@ int main(int argc, char* argv[]) {
     detectorValuesStitched.init(ptPvaValuesStitched, modelPvaValuesStitched, classesPvaValuesStitched);
     detectorValuesStitched.setComputeMode("gpu", 0);
 
-    Classifier classifier(ptGooglenet, modelGooglenet, meanGooglenet, classesGooglenet);
+    Classifier classifier;
+    classifier.init(ptGooglenet, modelGooglenet, meanGooglenet, classesGooglenet);
 
     OcrNameplatesAlfa ocr(detectorKeys, detectorValuesVin, detectorValuesStitched, classifier);
 

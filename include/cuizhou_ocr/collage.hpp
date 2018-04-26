@@ -16,14 +16,14 @@ namespace cuizhou {
 template<typename FieldEnum>
 class Collage {
 private:
-    struct TransformedRoiInfo {
+    struct RoiTransformInfo {
         cv::Rect roi;
-        PerspectiveTransform forwardTransform;
+        PerspectiveTransform backwardTransform;
 
-        ~TransformedRoiInfo() = default;
-        TransformedRoiInfo() = default;
-        TransformedRoiInfo(cv::Rect const& _roi, PerspectiveTransform const& _forwardTransform)
-                : roi(_roi), forwardTransform(_forwardTransform) {};
+        ~RoiTransformInfo() = default;
+        RoiTransformInfo() = default;
+        RoiTransformInfo(cv::Rect _roi, PerspectiveTransform _backwardTransform)
+                : roi(std::move(_roi)), backwardTransform(std::move(_backwardTransform)) {};
     };
 
 public:
@@ -41,7 +41,7 @@ public:
 
 private:
     cv::Mat resultImage_;
-    EnumHashMap<FieldEnum, TransformedRoiInfo> targetRoisInfo;
+    EnumHashMap<FieldEnum, RoiTransformInfo> roiTransformInfos;
 };
 
 template<typename FieldEnum>
@@ -62,10 +62,10 @@ Collage<FieldEnum>::Collage(cv::Mat const& image,
         cv::Mat resized = OcrUtils::imgResizeAndFill(image(originRoi), targetRoi.size(), &subimgToTarget);
         resized.copyTo(resultImg(targetRoi));
 
-        TransformedRoiInfo roiInfo(targetRoi,
-                                   imgToSubimg.mergedWith(subimgToTarget).mergedWith(targetToResultImg));
+        RoiTransformInfo roiInfo(targetRoi,
+                                 imgToSubimg.merge(subimgToTarget).merge(targetToResultImg).reverse());
 
-        targetRoisInfo.emplace(field, roiInfo);
+        roiTransformInfos.emplace(field, roiInfo);
     }
 
     resultImage_ = resultImg;
@@ -75,13 +75,12 @@ template<typename FieldEnum>
 EnumHashMap<FieldEnum, std::vector<Detection>>
 Collage<FieldEnum>::splitDetections(std::vector<Detection> const& dets, float overlapThresh) {
     EnumHashMap<FieldEnum, std::vector<Detection>> splitResult;
-    for (auto const& roiInfo : targetRoisInfo) {
-        PerspectiveTransform backwardTransform = roiInfo.second.forwardTransform.reversed();
+    for (auto const& roiInfo : roiTransformInfos) {
         for (auto const& det : dets) {
-            if (OcrUtils::computeAreaIntersection(det.getRect(), roiInfo.second.roi) > overlapThresh * det.getRect().area()) {
-                Detection detCopy = det;
-                detCopy.setRect(backwardTransform.apply(det.getRect()));
-                splitResult[roiInfo.first].push_back(detCopy);
+            if (OcrUtils::computeAreaIntersection(det.rect, roiInfo.second.roi) > overlapThresh * det.rect.area()) {
+                Detection transformedDet = det;
+                transformedDet.rect = roiInfo.second.backwardTransform.apply(det.rect);
+                splitResult[roiInfo.first].push_back(std::move(transformedDet));
             }
         }
     }

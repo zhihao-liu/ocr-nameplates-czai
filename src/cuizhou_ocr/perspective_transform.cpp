@@ -40,11 +40,17 @@ void PerspectiveTransform::scale(double uniformScale) {
     scale(uniformScale, uniformScale);
 }
 
+PerspectiveTransform& PerspectiveTransform::reverse() {
+    scaleX_ = 1.0 / scaleX_;
+    scaleY_ = 1.0 / scaleY_;
+    offsetX_ *=  -scaleX_;
+    offsetY_ *=  -scaleY_;
+    return *this;
+}
+
 PerspectiveTransform PerspectiveTransform::reversed() const {
-    return PerspectiveTransform(1.0 / scaleX_,
-                                1.0 / scaleY_,
-                                -offsetX_ / scaleX_,
-                                -offsetY_ / scaleY_);
+    PerspectiveTransform copy = *this;
+    return copy.reverse();
 }
 
 cv::Point PerspectiveTransform::apply(cv::Point const& point) const {
@@ -59,16 +65,20 @@ cv::Rect PerspectiveTransform::apply(cv::Rect const& rect) const {
                     int(std::round(rect.height * scaleY_)));
 }
 
-PerspectiveTransform PerspectiveTransform::merge(PerspectiveTransform const& tr1, PerspectiveTransform const& tr2) {
-    return PerspectiveTransform(tr1.scaleX_ * tr2.scaleX_,
-                                tr1.scaleY_ * tr2.scaleY_,
-                                tr1.offsetX_ * tr2.scaleX_ + tr2.offsetX_,
-                                tr1.offsetY_ * tr2.scaleY_ + tr2.offsetY_);
+PerspectiveTransform& PerspectiveTransform::merge(PerspectiveTransform const& that) {
+    scaleX_ *= that.scaleX_;
+    scaleY_ *= that.scaleY_;
+    offsetX_ = offsetX_ * that.scaleX_ + that.offsetX_;
+    offsetY_ = offsetY_ * that.scaleY_ + that.offsetY_;
+    return *this;
 }
-PerspectiveTransform PerspectiveTransform::mergedWith(PerspectiveTransform const& that) {
-    return merge(*this, that);
+
+PerspectiveTransform PerspectiveTransform::merged(PerspectiveTransform const& that) const {
+    PerspectiveTransform copy = *this;
+    return copy.merge(that);
 }
 
 std::ostream& operator<<(std::ostream& strm, PerspectiveTransform const& obj) {
-    return strm << "scale: "<< obj.scaleX_ << ", " << obj.scaleY_ << "; " << "offset: " << obj.offsetX_ << ", " << obj.offsetY_;
+    return strm << "scale: {"<< obj.scaleX_ << ", " << obj.scaleY_ << "}; "
+                << "offset: {" << obj.offsetX_ << ", " << obj.offsetY_ << "}";
 }

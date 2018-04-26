@@ -22,8 +22,8 @@ public:
     ~ClassnameDict() = default;
     ClassnameDict() = default;
     ClassnameDict(std::vector<EnumClass> const& enums, EnumClass fallbackEnum,
-                  std::vector<std::string> const& names, std::string const& fallbackName,
-                  std::vector<std::string> const& aliases = std::vector<std::string>(), std::string const& fallbackAlias = "");
+                  std::vector<std::string> const& names, std::string fallbackName,
+                  std::vector<std::string> const& aliases = std::vector<std::string>(), std::string fallbackAlias = "");
 
     EnumClass toEnum(std::string const& name) const;
     std::string getName(EnumClass enumItem) const;
@@ -40,11 +40,11 @@ private:
 
 template<typename EnumClass>
 ClassnameDict<EnumClass>::ClassnameDict(std::vector<EnumClass> const& enums, EnumClass fallbackEnum,
-                                       std::vector<std::string> const& names, std::string const& fallbackName,
-                                       std::vector<std::string> const& aliases, std::string const& fallbackAlias)
+                                       std::vector<std::string> const& names, std::string fallbackName,
+                                       std::vector<std::string> const& aliases, std::string fallbackAlias)
         : fallbackEnum_(fallbackEnum),
-          fallbackName_(fallbackName),
-          fallbackAlias_(fallbackAlias) {
+          fallbackName_(std::move(fallbackName)),
+          fallbackAlias_(std::move(fallbackAlias)) {
     assert(enums.size() == names.size());
     if (!aliases.empty()) assert(enums.size() == aliases.size());
     for (int i = 0; i < enums.size(); ++i) {

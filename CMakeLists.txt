@@ -12,8 +12,7 @@ include_directories(
         ${PROJECT_SOURCE_DIR}/include
         ${OpenCV_INCLUDE_DIRS}
         ${PROJECT_SOURCE_DIR}/3rdparty/caffe/include
-        ${PROJECT_SOURCE_DIR}/include/googlenet
-        ${PROJECT_SOURCE_DIR}/include/pvadetector
+        ${PROJECT_SOURCE_DIR}/include/mlmodel
         ${PROJECT_SOURCE_DIR}/include/cuizhou_ocr
         /usr/local/cuda/include
         )

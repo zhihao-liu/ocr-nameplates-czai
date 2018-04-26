@@ -9,7 +9,7 @@
 #include <map>
 #include <unordered_map>
 #include <fstream>
-#include "key_value_pair.h"
+#include "key_value_detection.h"
 #include "classname_dict.hpp"
 
 
@@ -23,13 +23,13 @@ public:
     virtual void processImage() override = 0;
     virtual cv::Mat drawResult() const override;
 
-    std::vector<KeyValuePair> getResultAsArray() const;
+    std::vector<KeyValueDetection> getResultAsArray() const;
 //    void printResultToConsoleInChinese() const;
 //    void printResultToFileInChinese(std::ofstream& outFile) const;
 
 protected:
     static ClassnameDict<NameplateField> const fieldDict_;
-    std::map<NameplateField, KeyValuePair> result_;
+    std::map<NameplateField, KeyValueDetection> result_;
 
     OcrNameplates() = default;
 };

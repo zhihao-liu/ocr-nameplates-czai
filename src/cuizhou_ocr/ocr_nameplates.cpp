@@ -17,10 +17,10 @@ ClassnameDict<OcrNameplates::NameplateField> const OcrNameplates::fieldDict_(
         std::string()
 );
 
-std::vector<KeyValuePair> OcrNameplates::getResultAsArray() const {
-    std::vector<KeyValuePair> resultVector;
+std::vector<KeyValueDetection> OcrNameplates::getResultAsArray() const {
+    std::vector<KeyValueDetection> resultVector;
     std::transform(result_.cbegin(), result_.cend(), std::back_inserter(resultVector),
-                   [](std::pair<NameplateField const, KeyValuePair> const& elem) { return elem.second; });
+                   [](std::pair<NameplateField const, KeyValueDetection> const& elem) { return elem.second; });
     return resultVector;
 }
 

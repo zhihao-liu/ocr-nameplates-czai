@@ -1,20 +1,26 @@
-//
-// Created by wz on 17-11-8.
-//
+// Edited by Zhihao Liu, Apr. 2018
+
 #include "classifier.h"
 
-Classifier::Classifier(const string& model_file,
-                       const string& trained_file,
-                       const string& mean_file,
-                       const string& label_file) {
+
+namespace cuizhou {
+
+void Classifier::init(std::string const& model_file,
+                      std::string const& trained_file,
+                      std::string const& mean_file,
+                      std::vector<std::string> const& labels) {
+    using namespace caffe;
+
 #ifdef CPU_ONLY
     Caffe::set_mode(Caffe::CPU);
 #else
     Caffe::set_mode(Caffe::GPU);
 #endif
 
+    labels_ = labels;
+
     /* Load the network. */
-    net_.reset(new Net<float>(model_file, TEST));
+    net_ = std::make_shared<Net<float>>(model_file, TEST);
     net_->CopyTrainedLayersFrom(trained_file);
 
     CHECK_EQ(net_->num_inputs(), 1) << "Network should have exactly one input.";
@@ -29,53 +35,46 @@ Classifier::Classifier(const string& model_file,
     /* Load the binaryproto mean file. */
     setMean(mean_file);
 
-    /* Load labels. */
-    std::ifstream labels(label_file.c_str());
-    CHECK(labels) << "Unable to open labels file " << label_file;
-    string line;
-    while (std::getline(labels, line))
-        labels_.push_back(string(line));
-
     Blob<float>* output_layer = net_->output_blobs()[0];
     CHECK_EQ(labels_.size(), output_layer->channels())
         << "Number of labels is different from the output layer dimension.";
 }
 
-static bool PairCompare(const std::pair<float, int>& lhs,
-                        const std::pair<float, int>& rhs) {
-    return lhs.first > rhs.first;
-}
+/* Return the indices of the top n values of vector v. */
+std::vector<int> Classifier::argmax(std::vector<float> const& v, int n) {
+    std::vector<std::pair<float, int>> pairs;
 
-/* Return the indices of the top N values of vector v. */
-static std::vector<int> Argmax(const std::vector<float>& v, int N) {
-    std::vector<std::pair<float, int> > pairs;
-    for (size_t i = 0; i < v.size(); ++i)
-        pairs.push_back(std::make_pair(v[i], i));
-    std::partial_sort(pairs.begin(), pairs.begin() + N, pairs.end(), PairCompare);
+    for (size_t i = 0; i < v.size(); ++i) pairs.emplace_back(v[i], i);
+
+    std::partial_sort(pairs.begin(), pairs.begin() + n, pairs.end(),
+                      [](std::pair<float, int> const& lhs, std::pair<float, int> const& rhs) {
+                          return lhs.first > rhs.first;
+                      });
 
     std::vector<int> result;
-    for (int i = 0; i < N; ++i)
-        result.push_back(pairs[i].second);
+    for (int i = 0; i < n; ++i) result.push_back(pairs[i].second);
     return result;
 }
 
-/* Return the top N predictions. */
-std::vector<Prediction> Classifier::classify(const cv::Mat &img, int N) const {
+/* Return the top n predictions. */
+std::vector<Classification> Classifier::classify(cv::Mat const& img, int n) const {
     std::vector<float> output = predict(img);
 
-    N = std::min<int>(labels_.size(), N);
-    std::vector<int> maxN = Argmax(output, N);
-    std::vector<Prediction> predictions;
-    for (int i = 0; i < N; ++i) {
+    n = std::min(int(labels_.size()), n);
+    std::vector<int> maxN = argmax(output, n);
+    std::vector<Classification> classifications;
+    for (int i = 0; i < n; ++i) {
         int idx = maxN[i];
-        predictions.push_back(std::make_pair(labels_[idx], output[idx]));
+        classifications.emplace_back(labels_[idx], output[idx]);
     }
 
-    return predictions;
+    return classifications;
 }
 
 /* Load the mean file in binaryproto format. */
-void Classifier::setMean(const string &mean_file) {
+void Classifier::setMean(std::string const& mean_file) {
+    using namespace caffe;
+
     BlobProto blob_proto;
     ReadProtoFromBinaryFileOrDie(mean_file.c_str(), &blob_proto);
 
@@ -105,7 +104,9 @@ void Classifier::setMean(const string &mean_file) {
     mean_ = cv::Mat(input_geometry_, mean.type(), channel_mean);
 }
 
-std::vector<float> Classifier::predict(const cv::Mat &img) const {
+std::vector<float> Classifier::predict(cv::Mat const& img) const {
+    using namespace caffe;
+
     Blob<float>* input_layer = net_->input_blobs()[0];
     input_layer->Reshape(1, num_channels_,
                          input_geometry_.height, input_geometry_.width);
@@ -113,9 +114,9 @@ std::vector<float> Classifier::predict(const cv::Mat &img) const {
     net_->Reshape();
 
     std::vector<cv::Mat> input_channels;
-    wrapInputLayer(&input_channels);
+    wrapInputLayer(input_channels);
 
-    preprocess(img, &input_channels);
+    preprocess(img, input_channels);
 
     net_->Forward();
 
@@ -131,7 +132,9 @@ std::vector<float> Classifier::predict(const cv::Mat &img) const {
  * don't need to rely on cudaMemcpy2D. The last preprocessing
  * operation will write the separate channels directly to the input
  * layer. */
-void Classifier::wrapInputLayer(std::vector<cv::Mat> *input_channels) const {
+void Classifier::wrapInputLayer(std::vector<cv::Mat>& input_channels) const {
+    using namespace caffe;
+
     Blob<float>* input_layer = net_->input_blobs()[0];
 
     int width = input_layer->width();
@@ -139,12 +142,12 @@ void Classifier::wrapInputLayer(std::vector<cv::Mat> *input_channels) const {
     float* input_data = input_layer->mutable_cpu_data();
     for (int i = 0; i < input_layer->channels(); ++i) {
         cv::Mat channel(height, width, CV_32FC1, input_data);
-        input_channels->push_back(channel);
+        input_channels.push_back(channel);
         input_data += width * height;
     }
 }
 
-void Classifier::preprocess(const cv::Mat &img, std::vector<cv::Mat> *input_channels) const {
+void Classifier::preprocess(cv::Mat const& img, std::vector<cv::Mat>& input_channels) const {
     /* Convert the input image to the input image format of the network. */
     cv::Mat sample;
     if (img.channels() == 3 && num_channels_ == 1)
@@ -176,9 +179,10 @@ void Classifier::preprocess(const cv::Mat &img, std::vector<cv::Mat> *input_chan
     /* This operation will write the separate BGR planes directly to the
      * input layer of the network because it is wrapped by the cv::Mat
      * objects in input_channels. */
-    cv::split(sample_normalized, *input_channels);
+    cv::split(sample_normalized, input_channels);
 
-    CHECK(reinterpret_cast<float*>(input_channels->at(0).data)
-          == net_->input_blobs()[0]->cpu_data())
+    CHECK(reinterpret_cast<float*>(input_channels.front().data) == net_->input_blobs()[0]->cpu_data())
     << "Input channels are not wrapping the input layer of the network.";
 }
+
+} // end namespace cuizhou
