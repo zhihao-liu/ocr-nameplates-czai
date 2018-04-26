@@ -2,7 +2,7 @@
 // Created by Zhihao Liu on 18-4-4.
 //
 
-#include "ocr_nameplates.h"
+#include "ocr_implementation/ocr_nameplate.h"
 #include <opencv2/imgproc/imgproc.hpp>
 
 
@@ -37,20 +37,12 @@ cv::Mat OcrNameplates::drawResult() const {
     return imgToShow;
 }
 
-//void OcrNameplates::printResultToConsoleInChinese() const {
-//    result_.printResultToConsole([](std::string const& key) {
-//        auto itrKeyMapped = CLASSNAME_ENG_TO_CHN.find(key);
-//        return itrKeyMapped == CLASSNAME_ENG_TO_CHN.end() ?
-//               std::string() : itrKeyMapped->second;
-//    });
-//}
-//
-//void OcrNameplates::printResultToFileInChinese(std::ofstream& outFile) const {
-//    result_.printResultToFile(outFile, [](std::string const& key) {
-//        auto itrKeyMapped = CLASSNAME_ENG_TO_CHN.find(key);
-//        return itrKeyMapped == CLASSNAME_ENG_TO_CHN.end() ?
-//               std::string() : itrKeyMapped->second;
-//    });
-//}
+std::string OcrNameplates::getResultAsString() const {
+    std::stringstream ss;
+    for (auto const& item : getResultAsArray()) {
+        ss << item << std::endl;
+    }
+    return ss.str();
+}
 
 } // end namespace cuizhou

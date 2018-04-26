@@ -7,10 +7,7 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <boost/filesystem.hpp>
-#include "classifier.h"
-#include "detector.h"
-#include "ocr_nameplates_alfa.h"
-#include "ocr_utils.hpp"
+#include "ocr_interface.hpp"
 
 #define SAVE_RESULTS 1
 
@@ -59,7 +56,7 @@ int main(int argc, char* argv[]) {
     Classifier classifier;
     classifier.init(ptGooglenet, modelGooglenet, meanGooglenet, classesGooglenet);
 
-    OcrNameplatesAlfa ocr(detectorKeys, detectorValuesVin, detectorValuesStitched, classifier);
+    OcrInterface ocr(OcrType::NAMEPLATE_ALFA, detectorKeys, detectorValuesVin, detectorValuesStitched, classifier);
 
     auto start = std::chrono::system_clock::now();
     int countAll = 0, countCorrect = 0;
@@ -74,12 +71,9 @@ int main(int argc, char* argv[]) {
         Mat img = imread(pathImg);
         if (img.empty()) continue;
 
-        ocr.setImage(img);
+        ocr.inputImage(img);
         ocr.processImage();
-        auto result = ocr.getResultAsArray();
-        for (auto const& item : result) {
-            cout << item << endl;
-        }
+        cout << ocr.getResultAsString() << endl;
 
         imshow("", ocr.drawResult());
         waitKey(0);

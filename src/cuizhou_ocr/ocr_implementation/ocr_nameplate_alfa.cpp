@@ -2,25 +2,18 @@
 // Created by Zhihao Liu on 18-4-4.
 //
 
-#include "ocr_nameplates_alfa.h"
+#include "ocr_implementation/ocr_nameplate_alfa.h"
 #include <numeric>
 #include <opencv2/highgui/highgui.hpp>
 #include "utils/cv_extension.h"
 #include "utils/data_processing.hpp"
-#include "ocr_utils.hpp"
+#include "cuizhou_ocr/ocr_implementation/ocr_utils.hpp"
 
 
 namespace cuizhou {
 
-int const OcrNameplatesAlfa::STANDARD_IMG_WIDTH = 1024;
-int const OcrNameplatesAlfa::STANDARD_IMG_HEIGHT = 768;
-int const OcrNameplatesAlfa::ROI_X_BORDER = 8;
-int const OcrNameplatesAlfa::ROI_Y_BORDER = 4;
-int const OcrNameplatesAlfa::CHAR_X_BORDER = 2;
-int const OcrNameplatesAlfa::CHAR_Y_BORDER = 1;
+//std::vector<std::string> const OcrNameplatesAlfa::PAINT_CANDIDATES = {"414", "361", "217", "248", "092", "093", "035", "318", "408", "409", "620"};
 
-std::vector<std::string> const OcrNameplatesAlfa::PAINT_CANDIDATES = {"414", "361", "217", "248", "092", "093", "035",
-                                                                      "318", "408", "409", "620"};
 EnumHashMap<OcrNameplatesAlfa::NameplateField, int> const OcrNameplatesAlfa::VALUE_LENGTH = {
         {NameplateField::VIN,                     17},
         {NameplateField::MAX_MASS_ALLOWED,        4},
@@ -32,6 +25,94 @@ EnumHashMap<OcrNameplatesAlfa::NameplateField, int> const OcrNameplatesAlfa::VAL
         {NameplateField::DATE_OF_MANUFACTURE,     6},
         {NameplateField::PAINT,                   3}
 };
+
+/* ------- Auxiliary Functions Hidden in Anonymous Namespace ------- */
+namespace {
+
+int const STANDARD_IMG_WIDTH = 1024;
+int const STANDARD_IMG_HEIGHT = 768;
+int const ROI_X_BORDER = 8;
+int const ROI_Y_BORDER = 4;
+int const CHAR_X_BORDER = 2;
+int const CHAR_Y_BORDER = 1;
+
+cv::Rect& extendRoiCoverage(cv::Rect& roi, std::vector<Detection> const& dets) {
+    assert(isSortedByXMid(dets));
+
+    int vacancy = 17 - int(dets.size());
+    if (vacancy <= 0) return roi;
+
+    float charWidth = float(computeExtent(dets).width) / dets.size();
+    float additionalWidth = float(charWidth * vacancy * 1.05);
+
+    roi.width = int(std::round(roi.width + additionalWidth));
+
+    double slope = estimateCharAlignmentSlope(dets);
+    if (slope > 0) {
+        roi.height += std::round(slope * additionalWidth);
+    } else {
+        roi.y += std::round(slope * additionalWidth);
+    }
+
+    return roi;
+}
+
+bool isRoiTooLargeForDetsExtent(cv::Rect const& roi, cv::Rect const& detsExtentInRoi) {
+    return isRectTooLarge(roi, detsExtentInRoi, int(2.5 * ROI_Y_BORDER), int(2.5 * ROI_Y_BORDER));
+}
+
+cv::Rect& adjustRoiToDetsExtent(cv::Rect& roi, cv::Rect detsExtentInRoi) {
+    expandRect(detsExtentInRoi, ROI_X_BORDER, ROI_Y_BORDER);
+    shrinkRectToExtent(roi, detsExtentInRoi);
+    return roi;
+}
+
+void resolveOverlappedDetections(std::vector<Detection>& dets) {
+    if (dets.size() <= 17) return;
+
+    std::vector<float> overlaps;
+    for (auto itr = std::next(dets.cbegin()); itr != dets.cend(); ++itr) {
+        float iou = computeIou(std::prev(itr)->rect, itr->rect);
+        overlaps.push_back(iou);
+    }
+
+    auto itrMaxOverlap = std::max_element(overlaps.cbegin(), overlaps.cend());
+    int idxMaxOverlap = int(std::distance(overlaps.cbegin(), itrMaxOverlap));
+
+    int idxToErase = dets[idxMaxOverlap].score < dets[idxMaxOverlap + 1].score ? idxMaxOverlap : idxMaxOverlap + 1;
+    dets.erase(std::next(dets.begin(), idxToErase));
+
+    resolveOverlappedDetections(dets);
+}
+
+bool containsUnambiguousNumberOne(Detection const& lhs, Detection const& rhs) {
+    return (lhs.label == "1" && rhs.label != "7" && rhs.label != "4" && rhs.label != "H")
+           || (rhs.label == "1" && lhs.label != "7" && lhs.label != "4" && lhs.label != "H");
+}
+
+void eliminateOverlapsByThresh(std::vector<Detection>& dets,
+                               std::pair<float, float> firstThresh,
+                               std::pair<float, float> secondThresh,
+                               float lowConfThresh) {
+    if (dets.size() < 2) return;
+    assert(isSortedByXMid(dets));
+
+    auto isOverlapped = [&](Detection const& det1, Detection const& det2) {
+        float firstTol = containsUnambiguousNumberOne(det1, det2) ? firstThresh.first : firstThresh.second;
+        float secondTol = containsUnambiguousNumberOne(det1, det2) ? secondThresh.first : secondThresh.second;
+        float overlap = computeIou(det1.rect, det2.rect);
+        return overlap > firstTol ||
+               (overlap > secondTol && std::min(det1.score, det2.score) < lowConfThresh);
+    };
+    auto compareScore = [](Detection const& lhs, Detection const& rhs) {
+        return lhs.score < rhs.score;
+    };
+
+    resolveConflicts(dets, isOverlapped, compareScore);
+}
+
+}
+/* ------- End Auxiliary Functions ------- */
 
 OcrNameplatesAlfa::OcrNameplatesAlfa(Detector detectorKeys,
                                      Detector detectorValuesVin,
@@ -80,7 +161,7 @@ void OcrNameplatesAlfa::adaptiveRotationWithUpdatingKeyDetections() {
     std::vector<Detection> valueDets = detectorValuesVin_.detect(image_(valueRoi));
 
     sortByXMid(valueDets);
-    eliminateXOverlaps(valueDets, NameplateField::VIN);
+    eliminateOverlaps(valueDets, NameplateField::VIN);
     eliminateYOutliers(valueDets);
 
     double slope = estimateCharAlignmentSlope(valueDets);
@@ -105,28 +186,28 @@ void OcrNameplatesAlfa::detectValueOfVin() {
     std::vector<Detection> valueDets = detectorValuesVin_.detect(image_(valueRoi));
 
     sortByXMid(valueDets);
-    eliminateXOverlaps(valueDets, NameplateField::VIN);
+    eliminateOverlaps(valueDets, NameplateField::VIN);
     eliminateYOutliers(valueDets);
 
     // second round in the network
-    adjustRoi(valueRoi, computeExtent(valueDets));
-    expandRoi(valueRoi, valueDets);
+    adjustRoiToDetsExtent(valueRoi, computeExtent(valueDets));
+    extendRoiCoverage(valueRoi, valueDets);
     validateRoi(valueRoi, image_);
     valueDets = detectorValuesVin_.detect(image_(valueRoi));
 
     sortByXMid(valueDets);
-    eliminateXOverlaps(valueDets, NameplateField::VIN);
+    eliminateOverlaps(valueDets, NameplateField::VIN);
     eliminateYOutliers(valueDets);
 
     cv::Rect detsExtent = computeExtent(valueDets);
-    if (isRoiTooLarge(valueRoi, detsExtent)) {
+    if (isRoiTooLargeForDetsExtent(valueRoi, detsExtent)) {
         // third round in the network
-        adjustRoi(valueRoi, detsExtent);
+        adjustRoiToDetsExtent(valueRoi, detsExtent);
         validateRoi(valueRoi, image_);
         valueDets = detectorValuesVin_.detect(image_(valueRoi));
 
         sortByXMid(valueDets);
-        eliminateXOverlaps(valueDets, NameplateField::VIN);
+        eliminateOverlaps(valueDets, NameplateField::VIN);
         eliminateYOutliers(valueDets);
     }
 
@@ -137,13 +218,14 @@ void OcrNameplatesAlfa::detectValueOfVin() {
     }
 
     if (valueDets.size() > 17) {
-        mergeOverlappedDetections(valueDets);
+        resolveOverlappedDetections(valueDets);
     }
 
     updateByClassification(valueDets, image_(valueRoi));
 
-    std::string valueText = joinDetectedChars(valueDets);
-    OcrDetection valueItem(valueText, valueRoi);
+    OcrDetection valueItem = joinDetections(valueDets);
+    valueItem.rect = PerspectiveTransform(1, valueRoi.x, valueRoi.y).apply(valueItem.rect);
+
     result_.emplace(NameplateField::VIN, KeyValueDetection(keyItem, valueItem));
 }
 
@@ -218,57 +300,7 @@ cv::Rect OcrNameplatesAlfa::estimateValueRoi(NameplateField field, cv::Rect cons
     }
 }
 
-void OcrNameplatesAlfa::sortByXMid(std::vector<Detection>& dets) {
-    std::sort(dets.begin(), dets.end(), [](Detection const& lhs, Detection const& rhs) {
-        return xMid(lhs.rect) < xMid(rhs.rect);
-    });
-}
-
-void OcrNameplatesAlfa::sortByYMid(std::vector<Detection>& dets) {
-    std::sort(dets.begin(), dets.end(), [](Detection const& lhs, Detection const& rhs) {
-        return yMid(lhs.rect) < yMid(rhs.rect);
-    });
-}
-
-void OcrNameplatesAlfa::sortByScoreDescending(std::vector<Detection>& dets) {
-    std::sort(dets.begin(), dets.end(),
-              [](Detection const& lhs, Detection const& rhs) { return lhs.score > rhs.score; });
-}
-
-bool OcrNameplatesAlfa::isSortedByXMid(std::vector<Detection> const& dets) {
-    return std::is_sorted(dets.cbegin(), dets.cend(),
-                          [](Detection const& lhs, Detection const& rhs) {
-                              return xMid(lhs.rect) < xMid(rhs.rect);
-                          });
-}
-
-std::string OcrNameplatesAlfa::joinDetectedChars(std::vector<Detection> const& dets) {
-    assert(isSortedByXMid(dets));
-
-    return std::accumulate(dets.cbegin(), dets.cend(), std::string(),
-                           [](std::string const& res, Detection const& det) { return res + det.label; });
-}
-
-bool OcrNameplatesAlfa::containsUnambiguousNumberOne(Detection const& lhs, Detection const& rhs) {
-    return (lhs.label == "1" && rhs.label != "7" && rhs.label != "4" && rhs.label != "H")
-           || (rhs.label == "1" && lhs.label != "7" && lhs.label != "4" && lhs.label != "H");
-}
-
-void OcrNameplatesAlfa::eliminateYOutliers(std::vector<Detection>& dets) {
-    if (dets.size() < 3) return;
-
-    // remove those lies off the horizontal reference line
-    int heightRef = findMedian(dets, [](Detection const& det) { return det.rect.height; });
-
-    int yMidRef = findMedian(dets, [](Detection const& det) { return yMid(det.rect); });
-
-    std::remove_if(dets.begin(), dets.end(),
-                   [&](Detection const& det) {
-                       return std::abs(yMid(det.rect) - yMidRef) > 0.25 * heightRef;
-                   });
-}
-
-void OcrNameplatesAlfa::eliminateXOverlaps(std::vector<Detection>& dets, NameplateField field){
+void OcrNameplatesAlfa::eliminateOverlaps(std::vector<Detection>& dets, NameplateField field){
     std::pair<float, float> firstThresh, secondThresh;
     switch (field) {
         // for fields of which value characters are compact
@@ -283,104 +315,7 @@ void OcrNameplatesAlfa::eliminateXOverlaps(std::vector<Detection>& dets, Namepla
             secondThresh = std::make_pair(0.4, 0.2);
         } break;
     }
-    eliminateXOverlaps(dets, firstThresh, secondThresh, 0.2);
-}
-
-void OcrNameplatesAlfa::eliminateXOverlaps(std::vector<Detection>& dets, std::pair<float, float> firstThresh,
-                                           std::pair<float, float> secondThresh, float lowConfThresh) {
-    if (dets.size() < 2) return;
-    assert(isSortedByXMid(dets));
-
-    auto isOverlapped = [&](Detection const& det1, Detection const& det2) {
-        float firstTol = containsUnambiguousNumberOne(det1, det2) ? firstThresh.first : firstThresh.second;
-        float secondTol = containsUnambiguousNumberOne(det1, det2) ? secondThresh.first : secondThresh.second;
-        float overlap = computeIou(det1.rect, det2.rect);
-        return overlap > firstTol ||
-               (overlap > secondTol && std::min(det1.score, det2.score) < lowConfThresh);
-    };
-    auto compareScore = [](Detection const& lhs, Detection const& rhs) {
-        return lhs.score < rhs.score;
-    };
-
-    resolveConflicts(dets, isOverlapped, compareScore);
-}
-
-cv::Rect OcrNameplatesAlfa::computeExtent(std::vector<Detection> const& dets) {
-    if (dets.empty()) return cv::Rect();
-
-    int left = std::numeric_limits<int>::max();
-    int right = std::numeric_limits<int>::min();
-    int top = std::numeric_limits<int>::max();
-    int bottom = std::numeric_limits<int>::min();
-
-    for (auto const& det : dets) {
-        left = std::min(left, det.rect.x);
-        right = std::max(right, det.rect.br().x);
-        top = std::min(top, det.rect.y);
-        bottom = std::max(bottom, det.rect.br().y);
-    }
-
-    return cv::Rect(left, top, right - left + 1, bottom - top + 1);
-}
-
-double OcrNameplatesAlfa::estimateCharAlignmentSlope(std::vector<Detection> const& dets) {
-    if (dets.empty()) return 0;
-
-    std::vector<double> xCoords, yCoords;
-    std::transform(dets.cbegin(), dets.cend(), std::back_inserter(xCoords),
-                   [](Detection det) { return xMid(det.rect); });
-    std::transform(dets.cbegin(), dets.cend(), std::back_inserter(yCoords),
-                   [](Detection det) { return yMid(det.rect); });
-
-    LinearFit lf(xCoords, yCoords);
-    return lf.slope();
-}
-
-cv::Rect& OcrNameplatesAlfa::expandRoi(cv::Rect& roi, std::vector<Detection> const& dets) {
-    assert(isSortedByXMid(dets));
-
-    int vacancy = 17 - int(dets.size());
-    if (vacancy <= 0) return roi;
-
-    float charWidth = float(computeExtent(dets).width) / dets.size();
-    float additionalWidth = float(charWidth * vacancy * 1.05);
-
-    roi.width = int(std::round(roi.width + additionalWidth));
-
-    double slope = estimateCharAlignmentSlope(dets);
-    if (slope > 0) {
-        roi.height += std::round(slope * additionalWidth);
-    } else {
-        roi.y += std::round(slope * additionalWidth);
-    }
-
-    return roi;
-}
-
-bool OcrNameplatesAlfa::isRoiTooLarge(cv::Rect const& roi, cv::Rect const& detsExtent) {
-    return (roi.width - detsExtent.width > 2.5 * ROI_X_BORDER) ||
-           (roi.height - detsExtent.height > 2.5 * ROI_Y_BORDER);
-}
-
-cv::Rect& OcrNameplatesAlfa::adjustRoi(cv::Rect& roi, cv::Rect const& detsExtentInRoi) {
-    roi.x += (detsExtentInRoi.x - ROI_X_BORDER);
-    roi.y += (detsExtentInRoi.y - ROI_Y_BORDER);
-    roi.width = detsExtentInRoi.width + ROI_X_BORDER * 2;
-    roi.height = detsExtentInRoi.height + ROI_Y_BORDER * 2;
-    return roi;
-}
-
-int OcrNameplatesAlfa::estimateCharSpacing(std::vector<Detection> const& dets) {
-    if (dets.size() < 2) return 0;
-    assert(isSortedByXMid(dets));
-
-    std::vector<int> spacings;
-    for (auto itr = std::next(dets.cbegin()); itr != dets.cend(); ++itr) {
-        int spacing = computeSpacing(std::prev(itr)->rect, itr->rect);
-        spacings.push_back(spacing);
-    }
-
-    return findMedian(spacings, [](int spacing) { return spacing; });
+    eliminateOverlapsByThresh(dets, firstThresh, secondThresh, 0.2);
 }
 
 void OcrNameplatesAlfa::addGapDetections(std::vector<Detection>& dets, cv::Rect const& roi) {
@@ -441,30 +376,6 @@ void OcrNameplatesAlfa::updateByClassification(std::vector<Detection>& dets, cv:
     }
 };
 
-void OcrNameplatesAlfa::mergeOverlappedDetections(std::vector<Detection>& dets) {
-    if (dets.size() <= 17) return;
-
-    std::vector<float> overlaps;
-    for (auto itr = std::next(dets.cbegin()); itr != dets.cend(); ++itr) {
-        float iou = computeIou(std::prev(itr)->rect, itr->rect);
-        overlaps.push_back(iou);
-    }
-
-    auto itrMaxOverlap = std::max_element(overlaps.cbegin(), overlaps.cend());
-    int idxMaxOverlap = int(std::distance(overlaps.cbegin(), itrMaxOverlap));
-
-    int idxToErase = dets[idxMaxOverlap].score < dets[idxMaxOverlap + 1].score ? idxMaxOverlap : idxMaxOverlap + 1;
-    dets.erase(std::next(dets.begin(), idxToErase));
-
-    mergeOverlappedDetections(dets);
-}
-
-void OcrNameplatesAlfa::eliminateLetters(std::vector<Detection>& dets) {
-    auto itrBeforeRemoved =
-            std::remove_if(dets.begin(), dets.end(),
-                           [](Detection const& det) { return !isNumbericChar(det.label); });
-    dets.erase(itrBeforeRemoved, dets.end());
-}
 
 //std::string OcrNameplatesAlfa::matchPaintWithLengthFixed(std::string const& str) {
 //    assert(str.length() == 3);
@@ -538,7 +449,7 @@ void OcrNameplatesAlfa::detectValuesOfOtherCodeFields() {
         // coordinates in dectections are relative to the source image
         // convert them to relative to the roi
         detsExtent = PerspectiveTransform(1, -originRoi.x, -originRoi.y).apply(detsExtent);
-        adjustRoi(originRoi, detsExtent);
+        adjustRoiToDetsExtent(originRoi, detsExtent);
         validateRoi(originRoi, image_);
     }
 
@@ -557,11 +468,9 @@ void OcrNameplatesAlfa::detectValuesOfOtherCodeFields() {
 
         auto itrKeyItem = keyOcrDetections_.find(field);
         if (itrKeyItem == keyOcrDetections_.end()) continue;
-        OcrDetection const& keyItem = itrKeyItem->second;
 
-        std::string valueText = joinDetectedChars(dets);
-        cv::Rect const& valueRoi = roiMapping[field].first;
-        OcrDetection valueItem(valueText, valueRoi);
+        OcrDetection const& keyItem = itrKeyItem->second;
+        OcrDetection valueItem = joinDetections(dets);
 
         result_.emplace(field, KeyValueDetection(keyItem, valueItem));
     }
@@ -573,7 +482,7 @@ void OcrNameplatesAlfa::postprocessStitchedDetections(EnumHashMap<NameplateField
         std::vector<Detection>& dets = splitItem.second;
 
         sortByXMid(dets);
-        eliminateXOverlaps(dets, field);
+        eliminateOverlaps(dets, field);
         eliminateYOutliers(dets);
 
         if (!shouldContainLetters(field)) {

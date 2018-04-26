@@ -6,7 +6,7 @@
 #define CUIZHOU_OCR_COLLAGE_H
 
 #include <functional>
-#include "ocr_utils.hpp"
+#include "cuizhou_ocr/ocr_implementation/ocr_utils.hpp"
 #include "utils/cv_extension.h"
 #include "utils/enum_hashmap.hpp"
 #include "utils/perspective_transform.h"

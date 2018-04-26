@@ -5,10 +5,10 @@
 #ifndef OCR_CUIZHOU_OCRNAMEPLATES_H
 #define OCR_CUIZHOU_OCRNAMEPLATES_H
 
-#include "ocr_handler.h"
 #include <map>
 #include <unordered_map>
 #include <fstream>
+#include "ocr_implementation/ocr_handler.h"
 #include "data_aux/keyvalue_detection.h"
 #include "data_aux/classname_dict.hpp"
 
@@ -23,7 +23,9 @@ public:
     virtual void processImage() override = 0;
     virtual cv::Mat drawResult() const override;
 
+    virtual std::string getResultAsString() const override;
     std::vector<KeyValueDetection> getResultAsArray() const;
+
 //    void printResultToConsoleInChinese() const;
 //    void printResultToFileInChinese(std::ofstream& outFile) const;
 
