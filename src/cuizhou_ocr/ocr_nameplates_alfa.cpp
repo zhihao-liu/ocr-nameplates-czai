@@ -5,11 +5,10 @@
 #include "ocr_nameplates_alfa.h"
 #include <numeric>
 #include <opencv2/highgui/highgui.hpp>
+#include "utils/cv_extension.h"
+#include "utils/data_processing.hpp"
 #include "ocr_utils.hpp"
 
-
-// DEBUG
-cv::Mat d_imgToShow;
 
 namespace cuizhou {
 
@@ -46,7 +45,7 @@ OcrNameplatesAlfa::OcrNameplatesAlfa(Detector detectorKeys,
 void OcrNameplatesAlfa::processImage() {
     result_.clear();
 
-    image_ = OcrUtils::imgResizeAndFill(image_, STANDARD_IMG_WIDTH, STANDARD_IMG_HEIGHT);
+    image_ = imgResizeAndFill(image_, STANDARD_IMG_WIDTH, STANDARD_IMG_HEIGHT);
 
     detectKeys();
     adaptiveRotationWithUpdatingKeyDetections();
@@ -87,7 +86,7 @@ void OcrNameplatesAlfa::adaptiveRotationWithUpdatingKeyDetections() {
     double slope = estimateCharAlignmentSlope(valueDets);
     if (std::abs(slope) > 0.025) {
         double angle = std::atan(slope) / CV_PI * 180;
-        image_ = OcrUtils::imgRotate(image_, angle);
+        image_ = imgRotate(image_, angle);
         detectKeys(); // update detections of keys
     }
 }
@@ -101,7 +100,7 @@ void OcrNameplatesAlfa::detectValueOfVin() {
 
     cv::Rect keyRoi = keyItem.rect;
     cv::Rect valueRoi = estimateValueRoi(NameplateField::VIN, keyRoi);
-    OcrUtils::validateRoi(valueRoi, image_);
+    validateRoi(valueRoi, image_);
     // no need to resize and fill because the model for VIN is trained with stretched images
     std::vector<Detection> valueDets = detectorValuesVin_.detect(image_(valueRoi));
 
@@ -112,7 +111,7 @@ void OcrNameplatesAlfa::detectValueOfVin() {
     // second round in the network
     adjustRoi(valueRoi, computeExtent(valueDets));
     expandRoi(valueRoi, valueDets);
-    OcrUtils::validateRoi(valueRoi, image_);
+    validateRoi(valueRoi, image_);
     valueDets = detectorValuesVin_.detect(image_(valueRoi));
 
     sortByXMid(valueDets);
@@ -123,7 +122,7 @@ void OcrNameplatesAlfa::detectValueOfVin() {
     if (isRoiTooLarge(valueRoi, detsExtent)) {
         // third round in the network
         adjustRoi(valueRoi, detsExtent);
-        OcrUtils::validateRoi(valueRoi, image_);
+        validateRoi(valueRoi, image_);
         valueDets = detectorValuesVin_.detect(image_(valueRoi));
 
         sortByXMid(valueDets);
@@ -221,13 +220,13 @@ cv::Rect OcrNameplatesAlfa::estimateValueRoi(NameplateField field, cv::Rect cons
 
 void OcrNameplatesAlfa::sortByXMid(std::vector<Detection>& dets) {
     std::sort(dets.begin(), dets.end(), [](Detection const& lhs, Detection const& rhs) {
-        return OcrUtils::xMid(lhs.rect) < OcrUtils::xMid(rhs.rect);
+        return xMid(lhs.rect) < xMid(rhs.rect);
     });
 }
 
 void OcrNameplatesAlfa::sortByYMid(std::vector<Detection>& dets) {
     std::sort(dets.begin(), dets.end(), [](Detection const& lhs, Detection const& rhs) {
-        return OcrUtils::yMid(lhs.rect) < OcrUtils::yMid(rhs.rect);
+        return yMid(lhs.rect) < yMid(rhs.rect);
     });
 }
 
@@ -239,7 +238,7 @@ void OcrNameplatesAlfa::sortByScoreDescending(std::vector<Detection>& dets) {
 bool OcrNameplatesAlfa::isSortedByXMid(std::vector<Detection> const& dets) {
     return std::is_sorted(dets.cbegin(), dets.cend(),
                           [](Detection const& lhs, Detection const& rhs) {
-                              return OcrUtils::xMid(lhs.rect) < OcrUtils::xMid(rhs.rect);
+                              return xMid(lhs.rect) < xMid(rhs.rect);
                           });
 }
 
@@ -259,17 +258,14 @@ void OcrNameplatesAlfa::eliminateYOutliers(std::vector<Detection>& dets) {
     if (dets.size() < 3) return;
 
     // remove those lies off the horizontal reference line
-    int heightRef = OcrUtils::findMedian(dets, [](Detection const& det) { return det.rect.height; });
+    int heightRef = findMedian(dets, [](Detection const& det) { return det.rect.height; });
 
-    int yMidRef = OcrUtils::findMedian(dets, [](Detection const& det) { return OcrUtils::yMid(det.rect); });
+    int yMidRef = findMedian(dets, [](Detection const& det) { return yMid(det.rect); });
 
-    for (auto itr = dets.begin(); itr != dets.end();) {
-        if (std::abs(OcrUtils::yMid(itr->rect) - yMidRef) > 0.25 * heightRef) {
-            itr = dets.erase(itr);
-        } else {
-            ++itr;
-        }
-    }
+    std::remove_if(dets.begin(), dets.end(),
+                   [&](Detection const& det) {
+                       return std::abs(yMid(det.rect) - yMidRef) > 0.25 * heightRef;
+                   });
 }
 
 void OcrNameplatesAlfa::eliminateXOverlaps(std::vector<Detection>& dets, NameplateField field){
@@ -287,40 +283,26 @@ void OcrNameplatesAlfa::eliminateXOverlaps(std::vector<Detection>& dets, Namepla
             secondThresh = std::make_pair(0.4, 0.2);
         } break;
     }
+    eliminateXOverlaps(dets, firstThresh, secondThresh, 0.2);
 }
 
 void OcrNameplatesAlfa::eliminateXOverlaps(std::vector<Detection>& dets, std::pair<float, float> firstThresh,
-                                           std::pair<float, float> secondThresh) {
+                                           std::pair<float, float> secondThresh, float lowConfThresh) {
     if (dets.size() < 2) return;
     assert(isSortedByXMid(dets));
 
-    for (auto itr = std::next(dets.begin()); itr != dets.end();) {
-        // set larger tolerance for "1" because it is overlapped most of the time
-        float firstTol = containsUnambiguousNumberOne(*std::prev(itr), *itr) ? firstThresh.first : firstThresh.second;
-        float secondTol = containsUnambiguousNumberOne(*std::prev(itr), *itr) ? secondThresh.first
-                                                                              : secondThresh.second;
+    auto isOverlapped = [&](Detection const& det1, Detection const& det2) {
+        float firstTol = containsUnambiguousNumberOne(det1, det2) ? firstThresh.first : firstThresh.second;
+        float secondTol = containsUnambiguousNumberOne(det1, det2) ? secondThresh.first : secondThresh.second;
+        float overlap = computeIou(det1.rect, det2.rect);
+        return overlap > firstTol ||
+               (overlap > secondTol && std::min(det1.score, det2.score) < lowConfThresh);
+    };
+    auto compareScore = [](Detection const& lhs, Detection const& rhs) {
+        return lhs.score < rhs.score;
+    };
 
-        float overlap = OcrUtils::computeIou(std::prev(itr)->rect, itr->rect);
-        if (overlap > firstTol) {
-            if (std::prev(itr)->score < itr->score) {
-                itr = std::next(dets.erase(std::prev(itr)));
-                continue;
-            } else {
-                itr = dets.erase(itr);
-                continue;
-            }
-        } else if (overlap > secondTol) {
-            if (std::prev(itr)->score < itr->score && std::prev(itr)->score < 0.2) {
-                itr = std::next(dets.erase(std::prev(itr)));
-                continue;
-            } else if (itr->score < std::prev(itr)->score && itr->score < 0.2) {
-                itr = dets.erase(itr);
-                continue;
-            }
-        };
-
-        ++itr;
-    }
+    resolveConflicts(dets, isOverlapped, compareScore);
 }
 
 cv::Rect OcrNameplatesAlfa::computeExtent(std::vector<Detection> const& dets) {
@@ -346,12 +328,12 @@ double OcrNameplatesAlfa::estimateCharAlignmentSlope(std::vector<Detection> cons
 
     std::vector<double> xCoords, yCoords;
     std::transform(dets.cbegin(), dets.cend(), std::back_inserter(xCoords),
-                   [](Detection det) { return OcrUtils::xMid(det.rect); });
+                   [](Detection det) { return xMid(det.rect); });
     std::transform(dets.cbegin(), dets.cend(), std::back_inserter(yCoords),
-                   [](Detection det) { return OcrUtils::yMid(det.rect); });
+                   [](Detection det) { return yMid(det.rect); });
 
-    LeastSquare ls(xCoords, yCoords);
-    return ls.getSlope();
+    LinearFit lf(xCoords, yCoords);
+    return lf.slope();
 }
 
 cv::Rect& OcrNameplatesAlfa::expandRoi(cv::Rect& roi, std::vector<Detection> const& dets) {
@@ -394,11 +376,11 @@ int OcrNameplatesAlfa::estimateCharSpacing(std::vector<Detection> const& dets) {
 
     std::vector<int> spacings;
     for (auto itr = std::next(dets.cbegin()); itr != dets.cend(); ++itr) {
-        int spacing = OcrUtils::computeSpacing(std::prev(itr)->rect, itr->rect);
+        int spacing = computeSpacing(std::prev(itr)->rect, itr->rect);
         spacings.push_back(spacing);
     }
 
-    return OcrUtils::findMedian(spacings, [](int spacing) { return spacing; });
+    return findMedian(spacings, [](int spacing) { return spacing; });
 }
 
 void OcrNameplatesAlfa::addGapDetections(std::vector<Detection>& dets, cv::Rect const& roi) {
@@ -412,7 +394,7 @@ void OcrNameplatesAlfa::addGapDetections(std::vector<Detection>& dets, cv::Rect 
     for (auto itr = std::next(dets.cbegin()); itr != dets.cend(); ++itr) {
         cv::Rect leftRect = std::prev(itr)->rect;
         cv::Rect rightRect = itr->rect;
-        if (OcrUtils::computeSpacing(leftRect, rightRect) > 1.5 * spacingRef) {
+        if (computeSpacing(leftRect, rightRect) > 1.5 * spacingRef) {
             int gapX = leftRect.x + leftRect.width - CHAR_X_BORDER;
             int gapY = (leftRect.y + rightRect.y) / 2 - CHAR_Y_BORDER;
             int gapW = (rightRect.x - (leftRect.x + leftRect.width)) + CHAR_X_BORDER * 2;
@@ -422,7 +404,7 @@ void OcrNameplatesAlfa::addGapDetections(std::vector<Detection>& dets, cv::Rect 
             int gapYReal = roi.y + gapY;
 
             cv::Rect gapRect(gapXReal, gapYReal, gapW, gapH);
-            OcrUtils::validateRoi(gapRect, image_);
+            validateRoi(gapRect, image_);
 
             cv::Mat gapExpanded(gapRect.height, gapRect.width * 10, CV_8UC3, cv::Scalar(0, 0, 0));
             cv::Rect centerRegion(cv::Point(gapExpanded.cols / 2 - gapRect.width / 2, 0), gapRect.size());
@@ -433,7 +415,7 @@ void OcrNameplatesAlfa::addGapDetections(std::vector<Detection>& dets, cv::Rect 
             if (!gapDets.empty()) {
                 gapRect.x = gapX;
                 gapRect.y = gapY;
-                OcrUtils::validateRoi(gapRect, roi);
+                validateRoi(gapRect, roi);
 
                 Detection& gapDet = gapDets.front();
                 gapDet.rect = gapRect;
@@ -448,7 +430,7 @@ void OcrNameplatesAlfa::addGapDetections(std::vector<Detection>& dets, cv::Rect 
 
 void OcrNameplatesAlfa::updateByClassification(std::vector<Detection>& dets, cv::Mat const& srcImg) const {
     for (auto& det : dets) {
-        if (!OcrUtils::isNumbericChar(det.label)) continue;
+        if (!isNumbericChar(det.label)) continue;
         if (det.score >= 0.8) continue;
 
         std::vector<Classification> clss = classifierChars_.classify(srcImg(det.rect), 1);
@@ -464,7 +446,7 @@ void OcrNameplatesAlfa::mergeOverlappedDetections(std::vector<Detection>& dets) 
 
     std::vector<float> overlaps;
     for (auto itr = std::next(dets.cbegin()); itr != dets.cend(); ++itr) {
-        float iou = OcrUtils::computeIou(std::prev(itr)->rect, itr->rect);
+        float iou = computeIou(std::prev(itr)->rect, itr->rect);
         overlaps.push_back(iou);
     }
 
@@ -478,13 +460,10 @@ void OcrNameplatesAlfa::mergeOverlappedDetections(std::vector<Detection>& dets) 
 }
 
 void OcrNameplatesAlfa::eliminateLetters(std::vector<Detection>& dets) {
-    for (auto itr = dets.begin(); itr != dets.end(); ) {
-        if (!OcrUtils::isNumbericChar(itr->label)) {
-            itr = dets.erase(itr);
-        } else {
-            ++itr;
-        }
-    }
+    auto itrBeforeRemoved =
+            std::remove_if(dets.begin(), dets.end(),
+                           [](Detection const& det) { return !isNumbericChar(det.label); });
+    dets.erase(itrBeforeRemoved, dets.end());
 }
 
 //std::string OcrNameplatesAlfa::matchPaintWithLengthFixed(std::string const& str) {
@@ -539,7 +518,7 @@ void OcrNameplatesAlfa::detectValuesOfOtherCodeFields() {
         if (itrKeyItem == keyOcrDetections_.end()) continue;
 
         cv::Rect originRoi = estimateValueRoi(fields[i], itrKeyItem->second.rect);
-        OcrUtils::validateRoi(originRoi, image_);
+        validateRoi(originRoi, image_);
         roiMapping.emplace(fields[i], std::make_pair(originRoi, targetRois[i]));
     }
 
@@ -556,12 +535,11 @@ void OcrNameplatesAlfa::detectValuesOfOtherCodeFields() {
 
         cv::Rect& originRoi = roiMapping[field].first;
         cv::Rect detsExtent = computeExtent(dets);
-        std::cout << dets.front().rect << std::endl;
         // coordinates in dectections are relative to the source image
         // convert them to relative to the roi
         detsExtent = PerspectiveTransform(1, -originRoi.x, -originRoi.y).apply(detsExtent);
         adjustRoi(originRoi, detsExtent);
-        OcrUtils::validateRoi(originRoi, image_);
+        validateRoi(originRoi, image_);
     }
 
     collage = Collage<NameplateField>(image_, roiMapping, collageSize);

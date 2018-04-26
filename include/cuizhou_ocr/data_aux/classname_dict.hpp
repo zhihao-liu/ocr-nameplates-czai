@@ -10,7 +10,7 @@
 #include <vector>
 #include <unordered_map>
 #include <cassert>
-#include "enum_hashmap.hpp"
+#include "utils/enum_hashmap.hpp"
 
 
 namespace cuizhou {
@@ -40,8 +40,8 @@ private:
 
 template<typename EnumClass>
 ClassnameDict<EnumClass>::ClassnameDict(std::vector<EnumClass> const& enums, EnumClass fallbackEnum,
-                                       std::vector<std::string> const& names, std::string fallbackName,
-                                       std::vector<std::string> const& aliases, std::string fallbackAlias)
+                                        std::vector<std::string> const& names, std::string fallbackName,
+                                        std::vector<std::string> const& aliases, std::string fallbackAlias)
         : fallbackEnum_(fallbackEnum),
           fallbackName_(std::move(fallbackName)),
           fallbackAlias_(std::move(fallbackAlias)) {

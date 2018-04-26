@@ -6,7 +6,7 @@
 #define OCR_CUIZHOU_INFOTABLE_H
 
 #include <opencv2/core/core.hpp>
-#include "ocr_detection.h"
+#include "data_aux/ocr_detection.h"
 
 
 namespace cuizhou {

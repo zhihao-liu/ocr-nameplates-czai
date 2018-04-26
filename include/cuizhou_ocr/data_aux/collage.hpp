@@ -7,8 +7,9 @@
 
 #include <functional>
 #include "ocr_utils.hpp"
-#include "enum_hashmap.hpp"
-#include "perspective_transform.h"
+#include "utils/cv_extension.h"
+#include "utils/enum_hashmap.hpp"
+#include "utils/perspective_transform.h"
 
 
 namespace cuizhou {
@@ -59,7 +60,7 @@ Collage<FieldEnum>::Collage(cv::Mat const& image,
         PerspectiveTransform subimgToTarget;
         PerspectiveTransform targetToResultImg(1, targetRoi.x, targetRoi.y);
 
-        cv::Mat resized = OcrUtils::imgResizeAndFill(image(originRoi), targetRoi.size(), &subimgToTarget);
+        cv::Mat resized = imgResizeAndFill(image(originRoi), targetRoi.size(), &subimgToTarget);
         resized.copyTo(resultImg(targetRoi));
 
         RoiTransformInfo roiInfo(targetRoi,
@@ -77,7 +78,7 @@ Collage<FieldEnum>::splitDetections(std::vector<Detection> const& dets, float ov
     EnumHashMap<FieldEnum, std::vector<Detection>> splitResult;
     for (auto const& roiInfo : roiTransformInfos) {
         for (auto const& det : dets) {
-            if (OcrUtils::computeAreaIntersection(det.rect, roiInfo.second.roi) > overlapThresh * det.rect.area()) {
+            if (computeAreaIntersection(det.rect, roiInfo.second.roi) > overlapThresh * det.rect.area()) {
                 Detection transformedDet = det;
                 transformedDet.rect = roiInfo.second.backwardTransform.apply(det.rect);
                 splitResult[roiInfo.first].push_back(std::move(transformedDet));

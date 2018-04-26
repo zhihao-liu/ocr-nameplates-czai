@@ -9,8 +9,8 @@
 #include <map>
 #include <unordered_map>
 #include <fstream>
-#include "key_value_detection.h"
-#include "classname_dict.hpp"
+#include "data_aux/keyvalue_detection.h"
+#include "data_aux/classname_dict.hpp"
 
 
 namespace cuizhou {

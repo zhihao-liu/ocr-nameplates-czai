@@ -9,8 +9,8 @@
 #include <unordered_map>
 #include "detector.h"
 #include "classifier.h"
-#include "enum_hashmap.hpp"
-#include "collage.hpp"
+#include "utils/enum_hashmap.hpp"
+#include "data_aux/collage.hpp"
 
 
 namespace cuizhou {
@@ -67,7 +67,10 @@ private:
     static bool shouldContainLetters(NameplateField field);
     static bool containsUnambiguousNumberOne(Detection const& det1, Detection const& det2);
 
-    static void eliminateXOverlaps(std::vector<Detection>& dets, std::pair<float, float> firstThresh, std::pair<float, float> secondThresh);
+    static void eliminateXOverlaps(std::vector<Detection>& dets,
+                                   std::pair<float, float> firstThresh,
+                                   std::pair<float, float> secondThresh,
+                                   float lowConfThresh);
     static void eliminateXOverlaps(std::vector<Detection>& dets, NameplateField field);
     static void eliminateYOutliers(std::vector<Detection>& dets);
 
