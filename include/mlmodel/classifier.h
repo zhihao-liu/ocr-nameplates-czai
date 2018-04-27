@@ -4,12 +4,13 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <caffe/caffe.hpp>
+#include "mlmodel.h"
 #include "classification.h"
 
 
 namespace cuizhou {
 
-class Classifier {
+class Classifier : public MlModel {
 public:
     ~Classifier() = default;
     Classifier() = default;

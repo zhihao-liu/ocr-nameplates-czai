@@ -2,19 +2,19 @@
 // Created by Zhihao Liu on 18-4-4.
 //
 
-#include "ocr_implementation/ocr_nameplate_alfa.h"
+#include "ocr_implementation/ocr_nameplate_alfaromeo.h"
 #include <numeric>
 #include <opencv2/highgui/highgui.hpp>
 #include "utils/cv_extension.h"
-#include "utils/data_processing.hpp"
-#include "cuizhou_ocr/ocr_implementation/ocr_utils.hpp"
+#include "utils/data_proc.hpp"
+#include "ocr_aux/detection_proc.h"
 
 
 namespace cuizhou {
 
-//std::vector<std::string> const OcrNameplatesAlfa::PAINT_CANDIDATES = {"414", "361", "217", "248", "092", "093", "035", "318", "408", "409", "620"};
+//std::vector<std::string> const OcrNameplateAlfaRomeoromeo::PAINT_CANDIDATES = {"414", "361", "217", "248", "092", "093", "035", "318", "408", "409", "620"};
 
-EnumHashMap<OcrNameplatesAlfa::NameplateField, int> const OcrNameplatesAlfa::VALUE_LENGTH = {
+EnumHashMap<OcrNameplateAlfaRomeo::NameplateField, int> const OcrNameplateAlfaRomeo::VALUE_LENGTH = {
         {NameplateField::VIN,                     17},
         {NameplateField::MAX_MASS_ALLOWED,        4},
         {NameplateField::MAX_NET_POWER_OF_ENGINE, 3},
@@ -39,13 +39,13 @@ int const CHAR_Y_BORDER = 1;
 cv::Rect& extendRoiCoverage(cv::Rect& roi, std::vector<Detection> const& dets) {
     assert(isSortedByXMid(dets));
 
-    int vacancy = 17 - int(dets.size());
+    int vacancy = 17 - static_cast<int>(dets.size());
     if (vacancy <= 0) return roi;
 
-    float charWidth = float(computeExtent(dets).width) / dets.size();
-    float additionalWidth = float(charWidth * vacancy * 1.05);
+    float charWidth = static_cast<float>(computeExtent(dets).width) / dets.size();
+    float additionalWidth = static_cast<float>(charWidth * vacancy * 1.05);
 
-    roi.width = int(std::round(roi.width + additionalWidth));
+    roi.width = static_cast<int>(std::round(roi.width + additionalWidth));
 
     double slope = estimateCharAlignmentSlope(dets);
     if (slope > 0) {
@@ -58,7 +58,8 @@ cv::Rect& extendRoiCoverage(cv::Rect& roi, std::vector<Detection> const& dets) {
 }
 
 bool isRoiTooLargeForDetsExtent(cv::Rect const& roi, cv::Rect const& detsExtentInRoi) {
-    return isRectTooLarge(roi, detsExtentInRoi, int(2.5 * ROI_Y_BORDER), int(2.5 * ROI_Y_BORDER));
+    return isRectTooLarge(roi, detsExtentInRoi,
+                          static_cast<int>(2.5 * ROI_Y_BORDER), static_cast<int>(2.5 * ROI_Y_BORDER));
 }
 
 cv::Rect& adjustRoiToDetsExtent(cv::Rect& roi, cv::Rect detsExtentInRoi) {
@@ -77,7 +78,7 @@ void resolveOverlappedDetections(std::vector<Detection>& dets) {
     }
 
     auto itrMaxOverlap = std::max_element(overlaps.cbegin(), overlaps.cend());
-    int idxMaxOverlap = int(std::distance(overlaps.cbegin(), itrMaxOverlap));
+    int idxMaxOverlap = static_cast<int>(std::distance(overlaps.cbegin(), itrMaxOverlap));
 
     int idxToErase = dets[idxMaxOverlap].score < dets[idxMaxOverlap + 1].score ? idxMaxOverlap : idxMaxOverlap + 1;
     dets.erase(std::next(dets.begin(), idxToErase));
@@ -114,7 +115,9 @@ void eliminateOverlapsByThresh(std::vector<Detection>& dets,
 }
 /* ------- End Auxiliary Functions ------- */
 
-OcrNameplatesAlfa::OcrNameplatesAlfa(Detector detectorKeys,
+OcrNameplateAlfaRomeo::~OcrNameplateAlfaRomeo() = default;
+
+OcrNameplateAlfaRomeo::OcrNameplateAlfaRomeo(Detector detectorKeys,
                                      Detector detectorValuesVin,
                                      Detector detectorValuesStitched,
                                      Classifier classifierChars)
@@ -123,7 +126,7 @@ OcrNameplatesAlfa::OcrNameplatesAlfa(Detector detectorKeys,
           detectorValuesStitched_(std::move(detectorValuesStitched)),
           classifierChars_(std::move(classifierChars)) {}
 
-void OcrNameplatesAlfa::processImage() {
+void OcrNameplateAlfaRomeo::processImage() {
     result_.clear();
 
     image_ = imgResizeAndFill(image_, STANDARD_IMG_WIDTH, STANDARD_IMG_HEIGHT);
@@ -135,7 +138,7 @@ void OcrNameplatesAlfa::processImage() {
     detectValuesOfOtherCodeFields();
 }
 
-void OcrNameplatesAlfa::detectKeys() {
+void OcrNameplateAlfaRomeo::detectKeys() {
     keyOcrDetections_.clear();
 
     detectorKeys_.setThresh(0.5, 0.1); // fixed params, empirical
@@ -150,7 +153,7 @@ void OcrNameplatesAlfa::detectKeys() {
                    });
 }
 
-void OcrNameplatesAlfa::adaptiveRotationWithUpdatingKeyDetections() {
+void OcrNameplateAlfaRomeo::adaptiveRotationWithUpdatingKeyDetections() {
     auto itrKeyVin = keyOcrDetections_.find(NameplateField::VIN);
     if (itrKeyVin == keyOcrDetections_.end()) return;
 
@@ -172,7 +175,7 @@ void OcrNameplatesAlfa::adaptiveRotationWithUpdatingKeyDetections() {
     }
 }
 
-void OcrNameplatesAlfa::detectValueOfVin() {
+void OcrNameplateAlfaRomeo::detectValueOfVin() {
     auto itrKeyItemVin = keyOcrDetections_.find(NameplateField::VIN);
     if (itrKeyItemVin == keyOcrDetections_.end()) return;
     OcrDetection const& keyItem = itrKeyItemVin->second;
@@ -229,69 +232,69 @@ void OcrNameplatesAlfa::detectValueOfVin() {
     result_.emplace(NameplateField::VIN, KeyValueDetection(keyItem, valueItem));
 }
 
-cv::Rect OcrNameplatesAlfa::estimateValueRoi(NameplateField field, cv::Rect const& keyRoi) {
+cv::Rect OcrNameplateAlfaRomeo::estimateValueRoi(NameplateField field, cv::Rect const& keyRoi) {
     switch (field) {
         case NameplateField::VIN: {
             return cv::Rect(keyRoi.br().x + 5,
-                            keyRoi.y - int(std::round(keyRoi.height * 0.25)),
-                            int(std::round(keyRoi.width * 1.75)),
-                            int(std::round(keyRoi.height * 1.5)));
+                            keyRoi.y - static_cast<int>(std::round(keyRoi.height * 0.25)),
+                            static_cast<int>(std::round(keyRoi.width * 1.75)),
+                            static_cast<int>(std::round(keyRoi.height * 1.5)));
         }
 
         case NameplateField::MAX_MASS_ALLOWED: {
             return cv::Rect(keyRoi.br().x,
-                            keyRoi.y - int(std::round(keyRoi.height * -0.1)),
-                            std::max(int(keyRoi.width * 0.7), 100),
-                            std::min(int(keyRoi.height * 1.25), 50));
+                            keyRoi.y - static_cast<int>(std::round(keyRoi.height * -0.1)),
+                            std::max(static_cast<int>(keyRoi.width * 0.7), 100),
+                            std::min(static_cast<int>(keyRoi.height * 1.25), 50));
         }
 
         case NameplateField::MAX_NET_POWER_OF_ENGINE: {
             return cv::Rect(keyRoi.br().x + 5,
-                            keyRoi.y - int(std::round(keyRoi.height * -0.1)),
-                            std::max(int(keyRoi.width * 0.5), 95),
-                            std::min(int(keyRoi.height * 1.25), 55));
+                            keyRoi.y - static_cast<int>(std::round(keyRoi.height * -0.1)),
+                            std::max(static_cast<int>(keyRoi.width * 0.5), 95),
+                            std::min(static_cast<int>(keyRoi.height * 1.25), 55));
         }
 
         case NameplateField::ENGINE_MODEL: {
             return cv::Rect(keyRoi.br().x + 10,
-                            keyRoi.y - int(std::round(keyRoi.height * 0.1)),
-                            std::max(int(keyRoi.width * 1.0), 150),
-                            std::min(int(keyRoi.height * 1.25), 40));
+                            keyRoi.y - static_cast<int>(std::round(keyRoi.height * 0.1)),
+                            std::max(static_cast<int>(keyRoi.width * 1.0), 150),
+                            std::min(static_cast<int>(keyRoi.height * 1.25), 40));
         }
 
         case NameplateField::NUM_PASSENGERS: {
             return cv::Rect(keyRoi.br().x + 5,
-                            keyRoi.y - int(std::round(keyRoi.height * 0.05)),
-                            std::max(int(keyRoi.width * 0.4), 40),
-                            std::min(int(keyRoi.height * 1.15), 40));
+                            keyRoi.y - static_cast<int>(std::round(keyRoi.height * 0.05)),
+                            std::max(static_cast<int>(keyRoi.width * 0.4), 40),
+                            std::min(static_cast<int>(keyRoi.height * 1.15), 40));
         }
 
         case NameplateField::VEHICLE_MODEL: {
             return cv::Rect(keyRoi.br().x + 5,
-                            keyRoi.y - int(std::round(keyRoi.height * 0.1)),
-                            std::max(int(keyRoi.width * 1.2), 120),
-                            std::min(int(keyRoi.height * 1.25), 40));
+                            keyRoi.y - static_cast<int>(std::round(keyRoi.height * 0.1)),
+                            std::max(static_cast<int>(keyRoi.width * 1.2), 120),
+                            std::min(static_cast<int>(keyRoi.height * 1.25), 40));
         }
 
         case NameplateField::ENGINE_DISPLACEMENT: {
             return cv::Rect(keyRoi.br().x + 10,
-                            keyRoi.y - int(std::round(keyRoi.height * 0.1)),
-                            std::max(int(keyRoi.width * 0.8), 80),
-                            std::min(int(keyRoi.height * 1.25), 40));
+                            keyRoi.y - static_cast<int>(std::round(keyRoi.height * 0.1)),
+                            std::max(static_cast<int>(keyRoi.width * 0.8), 80),
+                            std::min(static_cast<int>(keyRoi.height * 1.25), 40));
         }
 
         case NameplateField::DATE_OF_MANUFACTURE: {
             return cv::Rect(keyRoi.br().x + 10,
-                            keyRoi.y - int(std::round(keyRoi.height * 0.1)),
-                            std::max(int(keyRoi.width * 1.0), 75),
-                            std::min(int(keyRoi.height * 1.25), 40));
+                            keyRoi.y - static_cast<int>(std::round(keyRoi.height * 0.1)),
+                            std::max(static_cast<int>(keyRoi.width * 1.0), 75),
+                            std::min(static_cast<int>(keyRoi.height * 1.25), 40));
         }
 
         case NameplateField::PAINT: {
             return cv::Rect(keyRoi.br().x + 5,
-                            keyRoi.y - int(std::round(keyRoi.height * 0.1)),
-                            std::max(int(keyRoi.width * 1.2), 45),
-                            std::min(int(keyRoi.height * 1.25), 35));
+                            keyRoi.y - static_cast<int>(std::round(keyRoi.height * 0.1)),
+                            std::max(static_cast<int>(keyRoi.width * 1.2), 45),
+                            std::min(static_cast<int>(keyRoi.height * 1.25), 35));
         }
 
         default: {
@@ -300,7 +303,7 @@ cv::Rect OcrNameplatesAlfa::estimateValueRoi(NameplateField field, cv::Rect cons
     }
 }
 
-void OcrNameplatesAlfa::eliminateOverlaps(std::vector<Detection>& dets, NameplateField field){
+void OcrNameplateAlfaRomeo::eliminateOverlaps(std::vector<Detection>& dets, NameplateField field){
     std::pair<float, float> firstThresh, secondThresh;
     switch (field) {
         // for fields of which value characters are compact
@@ -318,7 +321,7 @@ void OcrNameplatesAlfa::eliminateOverlaps(std::vector<Detection>& dets, Nameplat
     eliminateOverlapsByThresh(dets, firstThresh, secondThresh, 0.2);
 }
 
-void OcrNameplatesAlfa::addGapDetections(std::vector<Detection>& dets, cv::Rect const& roi) {
+void OcrNameplateAlfaRomeo::addGapDetections(std::vector<Detection>& dets, cv::Rect const& roi) {
     if (dets.size() <= 2 || dets.size() >= 17) return;
     assert(isSortedByXMid(dets));
 
@@ -363,7 +366,7 @@ void OcrNameplatesAlfa::addGapDetections(std::vector<Detection>& dets, cv::Rect 
     dets.insert(dets.end(), addedDets.cbegin(), addedDets.cend());
 }
 
-void OcrNameplatesAlfa::updateByClassification(std::vector<Detection>& dets, cv::Mat const& srcImg) const {
+void OcrNameplateAlfaRomeo::updateByClassification(std::vector<Detection>& dets, cv::Mat const& srcImg) const {
     for (auto& det : dets) {
         if (!isNumbericChar(det.label)) continue;
         if (det.score >= 0.8) continue;
@@ -376,39 +379,7 @@ void OcrNameplatesAlfa::updateByClassification(std::vector<Detection>& dets, cv:
     }
 };
 
-
-//std::string OcrNameplatesAlfa::matchPaintWithLengthFixed(std::string const& str) {
-//    assert(str.length() == 3);
-//    for (auto const& cand : PAINT_CANDIDATES) {
-//        bool matched1 = (str[0] == '$' || str[0] == cand[0]);
-//        bool matched2 = (str[1] == '$' || str[1] == cand[1]);
-//        bool matched3 = (str[2] == '$' || str[2] == cand[2]);
-//        if (matched1 && matched2 && matched3) return cand;
-//    }
-//    return std::string();
-//}
-//
-//std::string OcrNameplatesAlfa::matchPaint(std::string const& str) {
-//    std::string result;
-//
-//    if (str.length() > 3) {
-//        return matchPaint(str.substr(0, 3));
-//    } else if (str.length() == 3) {
-//        if (result.empty()) result = matchPaintWithLengthFixed(str);
-//        if (result.empty()) result = matchPaintWithLengthFixed(str.substr(0, 2) + "$");
-//        if (result.empty()) result = matchPaintWithLengthFixed(str.substr(0, 1) + "$" + str.substr(2, 1));
-//        if (result.empty()) result = matchPaintWithLengthFixed("$" + str.substr(1, 2));
-//    } else if (str.length() == 2) {
-//        if (result.empty()) result = matchPaintWithLengthFixed(str + "$");
-//        if (result.empty()) result = matchPaintWithLengthFixed(str.substr(0, 1) + "$" + str.substr(1, 1));
-//        if (result.empty()) result = matchPaintWithLengthFixed("$" + str);
-//    }
-//
-//    if (result.empty()) result = str;
-//    return result;
-//}
-
-void OcrNameplatesAlfa::detectValuesOfOtherCodeFields() {
+void OcrNameplateAlfaRomeo::detectValuesOfOtherCodeFields() {
     detectorValuesStitched_.setThresh(0.05, 0.3);
 
     std::vector<NameplateField> fields = {NameplateField::ENGINE_MODEL, NameplateField::VEHICLE_MODEL,
@@ -476,7 +447,7 @@ void OcrNameplatesAlfa::detectValuesOfOtherCodeFields() {
     }
 }
 
-void OcrNameplatesAlfa::postprocessStitchedDetections(EnumHashMap<NameplateField, std::vector<Detection>>& stitchedDets) {
+void OcrNameplateAlfaRomeo::postprocessStitchedDetections(EnumHashMap<NameplateField, std::vector<Detection>>& stitchedDets) {
     for (auto& splitItem : stitchedDets) {
         NameplateField field = splitItem.first;
         std::vector<Detection>& dets = splitItem.second;
@@ -500,7 +471,7 @@ void OcrNameplatesAlfa::postprocessStitchedDetections(EnumHashMap<NameplateField
     }
 }
 
-bool OcrNameplatesAlfa::shouldContainLetters(NameplateField field) {
+bool OcrNameplateAlfaRomeo::shouldContainLetters(NameplateField field) {
     switch (field) {
         case NameplateField::VIN:
         case NameplateField::VEHICLE_MODEL: {

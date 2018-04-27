@@ -1,42 +1,10 @@
-//
-// Created by Zhihao Liu on 4/18/18.
-//
-
-#ifndef CUIZHOU_OCR_CLASSNAME_FINDER_H
-#define CUIZHOU_OCR_CLASSNAME_FINDER_H
-
-#include <type_traits>
-#include <string>
-#include <vector>
-#include <unordered_map>
-#include <cassert>
-#include "utils/enum_hashmap.hpp"
-
-
 namespace cuizhou {
 
 template<typename EnumClass>
-class ClassnameDict {
-    static_assert(std::is_enum<EnumClass>::value, "Template class \"ClassnameDict\" only support enum types as template parameters!");
-public:
-    ~ClassnameDict() = default;
-    ClassnameDict() = default;
-    ClassnameDict(std::vector<EnumClass> const& enums, EnumClass fallbackEnum,
-                  std::vector<std::string> const& names, std::string fallbackName,
-                  std::vector<std::string> const& aliases = std::vector<std::string>(), std::string fallbackAlias = "");
+ClassnameDict<EnumClass>::~ClassnameDict() = default;
 
-    EnumClass toEnum(std::string const& name) const;
-    std::string getName(EnumClass enumItem) const;
-    std::string getAlias(EnumClass enumItem) const;
-private:
-    std::unordered_map<EnumClass, std::string, EnumHasher<EnumClass>> enumToName_;
-    std::unordered_map<std::string, EnumClass> nameToEnum_;
-    std::unordered_map<EnumClass, std::string, EnumHasher<EnumClass>> enumToAlias_;
-
-    EnumClass const fallbackEnum_;
-    std::string const fallbackName_;
-    std::string const fallbackAlias_;
-};
+template<typename EnumClass>
+ClassnameDict<EnumClass>::ClassnameDict() = default;
 
 template<typename EnumClass>
 ClassnameDict<EnumClass>::ClassnameDict(std::vector<EnumClass> const& enums, EnumClass fallbackEnum,
@@ -73,6 +41,3 @@ std::string ClassnameDict<EnumClass>::getAlias(EnumClass enumItem) const {
 }
 
 } // end namespace cuizhou
-
-
-#endif //CUIZHOU_OCR_CLASSNAME_FINDER_H

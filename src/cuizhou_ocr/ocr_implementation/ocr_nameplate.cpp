@@ -8,7 +8,7 @@
 
 namespace cuizhou {
 
-ClassnameDict<OcrNameplates::NameplateField> const OcrNameplates::fieldDict_(
+ClassnameDict<OcrNameplate::NameplateField> const OcrNameplate::fieldDict_(
         {NameplateField::VIN, NameplateField::MANUFACTURER, NameplateField::BRAND, NameplateField::MAX_MASS_ALLOWED, NameplateField::MAX_NET_POWER_OF_ENGINE, NameplateField::COUNTRY, NameplateField::FACTORY, NameplateField::ENGINE_MODEL, NameplateField::NUM_PASSENGERS, NameplateField::VEHICLE_MODEL, NameplateField::ENGINE_DISPLACEMENT, NameplateField::DATE_OF_MANUFACTURE, NameplateField::PAINT},
         NameplateField::UNKNOWN,
         {"Vin", "Manufacturer", "Brand", "MaxMassAllowed", "MaxNetPowerOfEngine", "Country", "Factory", "EngineModel", "NumPassengers", "VehicleModel", "EngineDisplacement", "DateOfManufacture", "Paint"},
@@ -17,14 +17,18 @@ ClassnameDict<OcrNameplates::NameplateField> const OcrNameplates::fieldDict_(
         std::string()
 );
 
-std::vector<KeyValueDetection> OcrNameplates::getResultAsArray() const {
+OcrNameplate::~OcrNameplate() = default;
+
+OcrNameplate::OcrNameplate() = default;
+
+std::vector<KeyValueDetection> OcrNameplate::getResultAsArray() const {
     std::vector<KeyValueDetection> resultVector;
     std::transform(result_.cbegin(), result_.cend(), std::back_inserter(resultVector),
                    [](std::pair<NameplateField const, KeyValueDetection> const& elem) { return elem.second; });
     return resultVector;
 }
 
-cv::Mat OcrNameplates::drawResult() const {
+cv::Mat OcrNameplate::drawResult() const {
     cv::Mat imgToShow = image_.clone();
     cv::Scalar clrKeyRect(0, 0, 255);
     cv::Scalar clrValueRect(0, 255, 255);
@@ -37,7 +41,7 @@ cv::Mat OcrNameplates::drawResult() const {
     return imgToShow;
 }
 
-std::string OcrNameplates::getResultAsString() const {
+std::string OcrNameplate::getResultAsString() const {
     std::stringstream ss;
     for (auto const& item : getResultAsArray()) {
         ss << item << std::endl;

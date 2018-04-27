@@ -9,20 +9,20 @@
 #include "classifier.h"
 #include "ocr_implementation/ocr_nameplate.h"
 #include "utils/enum_hashmap.hpp"
-#include "data_aux/collage.hpp"
+#include "ocr_aux/collage.hpp"
 
 
-namespace cuizhou {
+namespace cuizhou{
 
-class OcrNameplatesAlfa final : public OcrNameplates {
+class OcrNameplateAlfaRomeo final : public OcrNameplate {
 public:
-    ~OcrNameplatesAlfa() override = default;
-    OcrNameplatesAlfa() = default;
+    ~OcrNameplateAlfaRomeo() override;
+    OcrNameplateAlfaRomeo() = delete;
 
-    OcrNameplatesAlfa(Detector detectorKeys,
-                      Detector detectorValuesVin,
-                      Detector detectorValuesStitched,
-                      Classifier classifierChars);
+    OcrNameplateAlfaRomeo(Detector detectorKeys,
+                          Detector detectorValuesVin,
+                          Detector detectorValuesStitched,
+                          Classifier classifierChars);
 
     virtual void processImage() override;
 

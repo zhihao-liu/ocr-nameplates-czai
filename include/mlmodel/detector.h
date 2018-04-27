@@ -4,12 +4,13 @@
 #include <caffe/caffe.hpp>
 #include <opencv2/core/core.hpp>
 #include <vector>
+#include "mlmodel.h"
 #include "detection.h"
 
 
 namespace cuizhou {
 
-class Detector {
+class Detector : public MlModel {
 public:
 	~Detector() = default;
 	Detector() = default;

@@ -8,7 +8,7 @@
 #include <vector>
 #include <string>
 #include "detection.h"
-#include "data_aux/ocr_detection.h"
+#include "datamodel/ocr_detection.h"
 
 
 namespace cuizhou {

@@ -7,8 +7,16 @@
 
 namespace cuizhou {
 
-void OcrHandler::inputImage(cv::Mat const& image) {
+OcrHandler::~OcrHandler() = default;
+
+OcrHandler::OcrHandler() = default;
+
+void OcrHandler::importImage(cv::Mat const& image) {
     image_ = image.clone();
+}
+
+void OcrHandler::setImageSource(cv::Mat const& image) {
+    image_ = image;
 }
 
 cv::Mat const& OcrHandler::image() const {

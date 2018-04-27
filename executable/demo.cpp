@@ -7,13 +7,10 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <boost/filesystem.hpp>
+#include "detector.h"
 #include "ocr_interface.hpp"
+#include "ocr_aux/detection_proc.h"
 
-#define SAVE_RESULTS 1
-
-
-// DEBUG
-extern cv::Mat d_imgToShow;
 
 int main(int argc, char* argv[]) {
     using namespace std;
@@ -21,42 +18,18 @@ int main(int argc, char* argv[]) {
     using namespace cuizhou;
     using namespace boost::filesystem;
 
-    string pathInputDir = "/home/cuizhou/lzh/data/raw-alfaromeo";
-    string pathOutputDir = "/home/cuizhou/lzh/data/results";
+    string pathInputDir = "/home/cuizhou/lzh/data/corrected-volkswagen";
 
-    string ptPvaKeys = "/home/cuizhou/lzh/models/pva_keys_compressed/test.prototxt";
-    string modelPvaKeys = "/home/cuizhou/lzh/models/pva_keys_compressed/car_brand_iter_100000.caffemodel";
-    vector<string> classesPvaKeys = readClassNames("/home/cuizhou/lzh/models/pva_keys_compressed/classes_name.txt", true);
+    string dirPvaValues = "/home/cuizhou/lzh/models/models_volkswagen/pva_values/";
+    string ptPvaValues = dirPvaValues + "merge_svd.prototxt";
+    string modelPvaValues = dirPvaValues + "nameplate_dz_iter_100000_merge_svd.caffemodel";
+    vector<string> classesPvaValues = readClassNames(dirPvaValues + "predefined_classes.txt");
 
-    string ptPvaValuesVin = "/home/cuizhou/lzh/models/pva_vin_value_chars_compressed/test.prototxt";
-    string modelPvaValuesVin = "/home/cuizhou/lzh/models/pva_vin_value_chars_compressed/alfa_engnum_char_iter_100000.caffemodel";
-    vector<string> classesPvaValuesVin = readClassNames("/home/cuizhou/lzh/models/pva_vin_value_chars_compressed/classes_name.txt", true);
+    Detector detectorValues;
+    detectorValues.init(ptPvaValues, modelPvaValues, classesPvaValues);
+    detectorValues.setComputeMode("gpu", 0);
 
-    string ptPvaValuesStitched = "/home/cuizhou/lzh/models/pva_stitch_model/merge_svd.prototxt";
-    string modelPvaValuesStitched = "/home/cuizhou/lzh/models/pva_stitch_model/stitch_name_plate_iter_100000_merge_svd.caffemodel";
-    vector<string> classesPvaValuesStitched = readClassNames("/home/cuizhou/lzh/models/pva_stitch_model/classes_name.txt", true);
-
-    string ptGooglenet = "/home/cuizhou/lzh/models/googlenet_chars/deploy.prototxt";
-    string modelGooglenet = "/home/cuizhou/lzh/models/googlenet_chars/model_googlenet_iter_38942.caffemodel";
-    string meanGooglenet = "/home/cuizhou/lzh/models/googlenet_chars/mean.binaryproto";
-    vector<string> classesGooglenet = readClassNames("/home/cuizhou/lzh/models/googlenet_chars/classname.txt");
-
-    Detector detectorKeys;
-    detectorKeys.init(ptPvaKeys, modelPvaKeys, classesPvaKeys);
-    detectorKeys.setComputeMode("gpu", 0);
-
-    Detector detectorValuesVin;
-    detectorValuesVin.init(ptPvaValuesVin, modelPvaValuesVin, classesPvaValuesVin);
-    detectorValuesVin.setComputeMode("gpu", 0);
-
-    Detector detectorValuesStitched;
-    detectorValuesStitched.init(ptPvaValuesStitched, modelPvaValuesStitched, classesPvaValuesStitched);
-    detectorValuesStitched.setComputeMode("gpu", 0);
-
-    Classifier classifier;
-    classifier.init(ptGooglenet, modelGooglenet, meanGooglenet, classesGooglenet);
-
-    OcrInterface ocr(OcrType::NAMEPLATE_ALFA, detectorKeys, detectorValuesVin, detectorValuesStitched, classifier);
+    OcrInterface ocr(OcrType::NAMEPLATE_VOLKSWAGEN, {detectorValues});
 
     auto start = std::chrono::system_clock::now();
     int countAll = 0, countCorrect = 0;
@@ -71,11 +44,12 @@ int main(int argc, char* argv[]) {
         Mat img = imread(pathImg);
         if (img.empty()) continue;
 
-        ocr.inputImage(img);
+        ocr.setImageSource(img);
         ocr.processImage();
-        cout << ocr.getResultAsString() << endl;
+//        cout << ocr.getResultAsString() << endl;
 
-        imshow("", ocr.drawResult());
+//        imshow("", ocr.drawResult());
+        imshow("", ocr.image());
         waitKey(0);
     }
 

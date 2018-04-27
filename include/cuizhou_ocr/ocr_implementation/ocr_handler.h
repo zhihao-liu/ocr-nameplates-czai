@@ -12,18 +12,21 @@ namespace cuizhou {
 
 class OcrHandler {
 public:
-    virtual ~OcrHandler() = default;
-    void inputImage(cv::Mat const& image);
-    cv::Mat const& image() const;
-    virtual void processImage() = 0;
-    virtual cv::Mat drawResult() const = 0;
+    virtual ~OcrHandler();
 
+    void importImage(cv::Mat const& image);
+    void setImageSource(cv::Mat const& image);
+    virtual void processImage() = 0;
+
+    cv::Mat const& image() const;
+
+    virtual cv::Mat drawResult() const = 0;
     virtual std::string getResultAsString() const = 0;
 
 protected:
     cv::Mat image_;
 
-    OcrHandler() = default;
+    OcrHandler();
 };
 
 } // end namespace cuizhou

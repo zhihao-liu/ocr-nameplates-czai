@@ -2,14 +2,18 @@
 // Created by Zhihao Liu on 18-4-4.
 //
 
-#include "ocr_implementation/ocr_utils.hpp"
+#include "ocr_aux/detection_proc.h"
 #include <fstream>
-#include <numeric>
+#include <limits>
 #include "utils/cv_extension.h"
-#include "utils/data_processing.hpp"
+#include "utils/data_proc.hpp"
 
 
 namespace cuizhou {
+
+bool isNumbericChar(std::string const& str) {
+    return str.length() == 1 && str[0] >= '0' && str[0] <= '9';
+}
 
 std::vector<std::string> readClassNames(std::string const& path, bool addBackground) {
     std::ifstream file(path);
@@ -23,20 +27,15 @@ std::vector<std::string> readClassNames(std::string const& path, bool addBackgro
     return classNames;
 };
 
-bool isNumbericChar(std::string const& str) {
-    return str.length() == 1 && str[0] >= '0' && str[0] <= '9';
-}
 
 void sortByXMid(std::vector<Detection>& dets) {
-    std::sort(dets.begin(), dets.end(), [](Detection const& lhs, Detection const& rhs) {
-        return xMid(lhs.rect) < xMid(rhs.rect);
-    });
+    std::sort(dets.begin(), dets.end(),
+              [](Detection const& lhs, Detection const& rhs) { return xMid(lhs.rect) < xMid(rhs.rect); });
 }
 
 void sortByYMid(std::vector<Detection>& dets) {
-    std::sort(dets.begin(), dets.end(), [](Detection const& lhs, Detection const& rhs) {
-        return yMid(lhs.rect) < yMid(rhs.rect);
-    });
+    std::sort(dets.begin(), dets.end(),
+              [](Detection const& lhs, Detection const& rhs) { return yMid(lhs.rect) < yMid(rhs.rect); });
 }
 
 void sortByScoreDescending(std::vector<Detection>& dets) {
@@ -45,10 +44,9 @@ void sortByScoreDescending(std::vector<Detection>& dets) {
 }
 
 bool isSortedByXMid(std::vector<Detection> const& dets) {
-    return std::is_sorted(dets.cbegin(), dets.cend(),
-                          [](Detection const& lhs, Detection const& rhs) {
-                              return xMid(lhs.rect) < xMid(rhs.rect);
-                          });
+    return std::is_sorted(dets.cbegin(), dets.cend(), [](Detection const& lhs, Detection const& rhs) {
+        return xMid(lhs.rect) < xMid(rhs.rect);
+    });
 }
 
 OcrDetection joinDetections(std::vector<Detection> const& dets) {
@@ -68,9 +66,8 @@ std::string joinDetectedChars(std::vector<Detection> const& dets) {
 }
 
 void eliminateLetters(std::vector<Detection>& dets) {
-    auto itrBeforeRemoved =
-            std::remove_if(dets.begin(), dets.end(),
-                           [](Detection const& det) { return !isNumbericChar(det.label); });
+    auto itrBeforeRemoved = std::remove_if(dets.begin(), dets.end(),
+                                           [](Detection const& det) { return !isNumbericChar(det.label); });
     dets.erase(itrBeforeRemoved, dets.end());
 }
 
@@ -129,7 +126,7 @@ int estimateCharSpacing(std::vector<Detection> const& dets) {
         spacings.push_back(spacing);
     }
 
-    return findMedian(spacings, [](int spacing) { return spacing; });
+    return findMedian(spacings);
 }
 
 cv::Rect& shrinkRectToExtent(cv::Rect& rect, cv::Rect const& extentInRect) {

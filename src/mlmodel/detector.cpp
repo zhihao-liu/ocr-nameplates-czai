@@ -160,7 +160,7 @@ std::vector<Detection> Detector::detect(cv::Mat const& img, std::string const& c
 
 void Detector::drawBox(cv::Mat& img, std::vector<Detection> const& dets) {
     for (auto const& det : dets) {
-        rectangle(img, det.rect, cv::Scalar(255, 0, 0), 4);
+        rectangle(img, det.rect, cv::Scalar(255, 0, 0), 1);
         std::ostringstream os;
         os.precision(2);
         os << det.score;
@@ -169,7 +169,7 @@ void Detector::drawBox(cv::Mat& img, std::vector<Detection> const& dets) {
                 det.label,
                 cv::Point(det.rect.x, det.rect.y - 2),
                 cv::FONT_HERSHEY_SIMPLEX, 1,
-                cv::Scalar(0, 0, 255), 2);
+                cv::Scalar(0, 0, 255), 1);
     }
 }
 

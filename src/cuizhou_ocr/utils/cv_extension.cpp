@@ -22,13 +22,13 @@ cv::Mat imgResizeAndFill(cv::Mat const& img,
     if (img.cols == newWidth && img.rows == newHeight) return img.clone();
 
     cv::Mat newImg(newHeight, newWidth, CV_8UC3, cv::Scalar(0, 0, 0));;
-    float wScale = float(newWidth) / img.cols;
-    float hScale = float(newHeight) / img.rows;
+    float wScale = static_cast<float>(newWidth) / img.cols;
+    float hScale = static_cast<float>(newHeight) / img.rows;
 
     float unifiedScale = wScale < hScale ? wScale : hScale;
 
     cv::Mat tempImg;
-    cv::resize(img, tempImg, cv::Size(int(unifiedScale * img.cols), int(unifiedScale * img.rows)));
+    cv::resize(img, tempImg, cv::Size(static_cast<int>(unifiedScale * img.cols), static_cast<int>(unifiedScale * img.rows)));
 
     int xShift = (newImg.cols - tempImg.cols) / 2;
     int yShift = (newImg.rows - tempImg.rows) / 2;
@@ -53,11 +53,11 @@ cv::Mat imgRotate(cv::Mat const& img, double angleInDegree) {
 }
 
 int xMid(cv::Rect const& rect) {
-    return rect.x + int(round(rect.width / 2.0));
+    return rect.x + static_cast<int>(round(rect.width / 2.0));
 }
 
 int yMid(cv::Rect const& rect) {
-    return rect.y + int(round(rect.height / 2.0));
+    return rect.y + static_cast<int>(round(rect.height / 2.0));
 }
 
 int computeXOverlap(cv::Rect const& rect1, cv::Rect const& rect2) {
@@ -85,7 +85,7 @@ int computeAreaIntersection(cv::Rect const& rect1, cv::Rect const& rect2) {
 
 float computeIou(cv::Rect const& rect1, cv::Rect const& rect2) {
     int areaIntersection = computeAreaIntersection(rect1, rect2);
-    return float(areaIntersection) / (rect1.area() + rect2.area() - areaIntersection);
+    return static_cast<float>(areaIntersection) / (rect1.area() + rect2.area() - areaIntersection);
 }
 
 int computeSpacing(cv::Rect const& rect1, cv::Rect const& rect2) {

@@ -3,7 +3,7 @@
 //
 
 #include <iostream>
-#include "cuizhou_ocr/utils/perspective_transform.h"
+#include "utils/perspective_transform.h"
 
 
 PerspectiveTransform::PerspectiveTransform(double scaleX, double scaleY, double offsetX, double offsetY)
@@ -54,15 +54,15 @@ PerspectiveTransform PerspectiveTransform::reversed() const {
 }
 
 cv::Point PerspectiveTransform::apply(cv::Point const& point) const {
-    return cv::Point(int(std::round(point.x * scaleX_ + offsetX_)),
-                     int(std::round(point.y * scaleY_ + offsetY_)));
+    return cv::Point(static_cast<int>(std::round(point.x * scaleX_ + offsetX_)),
+                     static_cast<int>(std::round(point.y * scaleY_ + offsetY_)));
 }
 
 cv::Rect PerspectiveTransform::apply(cv::Rect const& rect) const {
-    return cv::Rect(int(std::round(rect.x * scaleX_ + offsetX_)),
-                    int(std::round(rect.y * scaleY_ + offsetY_)),
-                    int(std::round(rect.width * scaleX_)),
-                    int(std::round(rect.height * scaleY_)));
+    return cv::Rect(static_cast<int>(std::round(rect.x * scaleX_ + offsetX_)),
+                    static_cast<int>(std::round(rect.y * scaleY_ + offsetY_)),
+                    static_cast<int>(std::round(rect.width * scaleX_)),
+                    static_cast<int>(std::round(rect.height * scaleY_)));
 }
 
 PerspectiveTransform& PerspectiveTransform::merge(PerspectiveTransform const& that) {

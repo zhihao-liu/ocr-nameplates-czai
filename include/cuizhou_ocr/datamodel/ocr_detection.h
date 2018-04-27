@@ -5,19 +5,21 @@
 #ifndef CUIZHOU_OCR_OCR_DETECTION_H
 #define CUIZHOU_OCR_OCR_DETECTION_H
 
+#include <string>
+#include <opencv2/core/core.hpp>
+
 namespace cuizhou {
 
 struct OcrDetection {
     std::string text;
     cv::Rect rect;
 
-    ~OcrDetection() = default;
-    OcrDetection() = default;
+    ~OcrDetection();
+    OcrDetection();
 
-    OcrDetection(std::string _text, cv::Rect _rect)
-            : text(std::move(_text)), rect(std::move(_rect)) {};
+    OcrDetection(std::string _text, cv::Rect const& _rect);
 
-    bool empty() const { return text.empty(); };
+    bool empty() const;
 };
 
 } // end namespace cuizhou

@@ -1,41 +1,4 @@
-//
-// Created by Zhihao Liu on 4/26/18.
-//
-
-#ifndef CUIZHOU_OCR_DATA_PROCESSING_H
-#define CUIZHOU_OCR_DATA_PROCESSING_H
-
-#include <type_traits>
-#include <vector>
-#include <algorithm>
-#include <numeric>
-
-
 namespace cuizhou {
-
-template<typename Container, typename Conflict, typename Compare>
-void resolveConflicts(Container& container, Conflict&& conflict, Compare&& comp);
-
-template<typename Container>
-auto findMedian(Container containerCopy) -> typename Container::value_type;
-template<typename Container, typename Func>
-auto findMedian(Container const& container, Func&& toNumber) -> typename std::result_of<Func(typename Container::value_type)>::type;
-
-template<typename Container>
-auto computeMean(Container const& container) -> typename Container::value_type;
-template<typename Container, typename Func>
-auto computeMean(Container const& container, Func&& toNumber) -> typename std::result_of<Func(typename Container::value_type)>::type;
-
-class LinearFit {
-public:
-    LinearFit(std::vector<double> const& x, std::vector<double> const& y);
-    double slope() const { return a; };
-    double constant() const { return b; };
-private:
-    double a, b;
-};
-
-/* ------- Template Implementations -------*/
 
 // find the median of a collection of numbers
 template<typename Container>
@@ -88,8 +51,8 @@ auto computeMean(Container const& container, Func&& toNumber) -> typename std::r
     return sum / container.size();
 };
 
-template<typename Container, typename Conflict, typename Compare>
-void resolveConflicts(Container& container, Conflict&& conflict, Compare&& comp) {
+template<typename Container, typename ConflictPred, typename Compare>
+void resolveConflicts(Container& container, ConflictPred&& conflict, Compare&& comp) {
     if (container.size() < 2) return;
 
     for (auto itr = std::next(container.begin()); itr != container.end(); ) {
@@ -106,6 +69,20 @@ void resolveConflicts(Container& container, Conflict&& conflict, Compare&& comp)
     }
 }
 
-} // end namespace cuizhou
+template<typename Container, typename Field, typename RefObj, typename RelevancePred>
+auto distributeItemsByField(Container const& items, EnumHashMap<Field, RefObj> const& refMap, RelevancePred&& relevant)
+-> EnumHashMap<Field, Container> {
+    EnumHashMap<Field, Container> distributions;
 
-#endif //CUIZHOU_OCR_DATA_PROCESSING_H
+    for (auto const& refItem : refMap) {
+        for (auto const& item : items) {
+            if (relevant(item, refItem.second)) {
+                distributions[refItem.first].push_back(item);
+            }
+        }
+    }
+
+    return distributions;
+}
+
+}; // end namespace cuizhou
