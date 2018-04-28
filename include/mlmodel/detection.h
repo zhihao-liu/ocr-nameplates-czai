@@ -5,7 +5,7 @@
 #include <opencv2/core/core.hpp>
 
 
-namespace cuizhou {
+namespace cz {
 
 struct Detection {
     std::string label;

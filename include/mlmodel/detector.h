@@ -8,7 +8,7 @@
 #include "detection.h"
 
 
-namespace cuizhou {
+namespace cz {
 
 class Detector : public MlModel {
 public:

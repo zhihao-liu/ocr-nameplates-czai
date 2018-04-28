@@ -3,10 +3,10 @@
 //
 
 #include <opencv2/imgproc/imgproc.hpp>
-#include "utils/cv_extension.h"
+#include "data_utils/cv_extension.h"
 
 
-namespace cuizhou {
+namespace cz {
 
 cv::Mat imgResizeAndFill(cv::Mat const& img,
                          cv::Size const& newSize,
@@ -52,39 +52,43 @@ cv::Mat imgRotate(cv::Mat const& img, double angleInDegree) {
     return newImg;
 }
 
+cv::Rect extent(cv::Mat const& img) {
+    return cv::Rect(0, 0, img.cols, img.rows);
+}
+
 int xMid(cv::Rect const& rect) {
-    return rect.x + static_cast<int>(round(rect.width / 2.0));
+    return rect.x + (rect.width  - 1) / 2;
 }
 
 int yMid(cv::Rect const& rect) {
-    return rect.y + static_cast<int>(round(rect.height / 2.0));
+    return rect.y + (rect.height - 1) / 2;
 }
 
-int computeXOverlap(cv::Rect const& rect1, cv::Rect const& rect2) {
-    int xMin = std::min(rect1.x, rect2.x);
-    int xMax = std::max(rect1.x + rect1.width, rect2.x + rect2.width);
-    int xOverlap = (rect1.width + rect2.width) - (xMax - xMin);
-
-    return xOverlap <= 0 ? 0 : xOverlap;
-}
-
-int computeYOverlap(cv::Rect const& rect1, cv::Rect const& rect2) {
-    int yMin = std::min(rect1.y, rect2.y);
-    int yMax = std::max(rect1.y + rect1.height, rect2.y + rect2.height);
-    int yOverlap = (rect1.height + rect2.height) - (yMax - yMin);
-
-    return yOverlap <= 0 ? 0 : yOverlap;
-}
-
-int computeAreaIntersection(cv::Rect const& rect1, cv::Rect const& rect2) {
-    int xOverlap = computeXOverlap(rect1, rect2);
-    int yOverlap = computeYOverlap(rect1, rect2);
-
-    return xOverlap * yOverlap;
-}
+//int computeXOverlap(cv::Rect const& rect1, cv::Rect const& rect2) {
+//    int xMin = std::min(rect1.x, rect2.x);
+//    int xMax = std::max(rect1.x + rect1.width, rect2.x + rect2.width);
+//    int xOverlap = (rect1.width + rect2.width) - (xMax - xMin);
+//
+//    return xOverlap <= 0 ? 0 : xOverlap;
+//}
+//
+//int computeYOverlap(cv::Rect const& rect1, cv::Rect const& rect2) {
+//    int yMin = std::min(rect1.y, rect2.y);
+//    int yMax = std::max(rect1.y + rect1.height, rect2.y + rect2.height);
+//    int yOverlap = (rect1.height + rect2.height) - (yMax - yMin);
+//
+//    return yOverlap <= 0 ? 0 : yOverlap;
+//}
+//
+//int computeAreaIntersection(cv::Rect const& rect1, cv::Rect const& rect2) {
+//    int xOverlap = computeXOverlap(rect1, rect2);
+//    int yOverlap = computeYOverlap(rect1, rect2);
+//
+//    return xOverlap * yOverlap;
+//}
 
 float computeIou(cv::Rect const& rect1, cv::Rect const& rect2) {
-    int areaIntersection = computeAreaIntersection(rect1, rect2);
+    int areaIntersection = (rect1 & rect2).area();
     return static_cast<float>(areaIntersection) / (rect1.area() + rect2.area() - areaIntersection);
 }
 
@@ -92,4 +96,4 @@ int computeSpacing(cv::Rect const& rect1, cv::Rect const& rect2) {
     return std::abs(xMid(rect1) - xMid(rect2));
 }
 
-} // end namespace cuizhou
+} // end namespace cz

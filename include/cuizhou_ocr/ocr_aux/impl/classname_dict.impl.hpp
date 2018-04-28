@@ -1,4 +1,4 @@
-namespace cuizhou {
+namespace cz {
 
 template<typename EnumClass>
 ClassnameDict<EnumClass>::~ClassnameDict() = default;
@@ -40,4 +40,4 @@ std::string ClassnameDict<EnumClass>::getAlias(EnumClass enumItem) const {
     return itr == enumToAlias_.end() ? fallbackAlias_ : itr->second;
 }
 
-} // end namespace cuizhou
+} // end namespace cz

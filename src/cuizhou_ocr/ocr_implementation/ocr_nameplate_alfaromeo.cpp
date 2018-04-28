@@ -5,12 +5,12 @@
 #include "ocr_implementation/ocr_nameplate_alfaromeo.h"
 #include <numeric>
 #include <opencv2/highgui/highgui.hpp>
-#include "utils/cv_extension.h"
-#include "utils/data_proc.hpp"
+#include "data_utils/cv_extension.h"
+#include "data_utils/data_proc.hpp"
 #include "ocr_aux/detection_proc.h"
 
 
-namespace cuizhou {
+namespace cz {
 
 //std::vector<std::string> const OcrNameplateAlfaRomeoromeo::PAINT_CANDIDATES = {"414", "361", "217", "248", "092", "093", "035", "318", "408", "409", "620"};
 
@@ -39,19 +39,13 @@ int const CHAR_Y_BORDER = 1;
 cv::Rect& extendRoiCoverage(cv::Rect& roi, std::vector<Detection> const& dets) {
     assert(isSortedByXMid(dets));
 
+    int charSpacing = estimateCharSpacing(dets);
+    roi.width = static_cast<int>(charSpacing * 17 * 1.1);
+
     int vacancy = 17 - static_cast<int>(dets.size());
-    if (vacancy <= 0) return roi;
-
-    float charWidth = static_cast<float>(computeExtent(dets).width) / dets.size();
-    float additionalWidth = static_cast<float>(charWidth * vacancy * 1.05);
-
-    roi.width = static_cast<int>(std::round(roi.width + additionalWidth));
-
-    double slope = estimateCharAlignmentSlope(dets);
-    if (slope > 0) {
-        roi.height += std::round(slope * additionalWidth);
-    } else {
-        roi.y += std::round(slope * additionalWidth);
+    if (vacancy > 0) {
+        double slope = estimateCharAlignmentSlope(dets);
+        (slope > 0 ? roi.height : roi.y) += std::round(slope * charSpacing * vacancy);
     }
 
     return roi;
@@ -59,7 +53,8 @@ cv::Rect& extendRoiCoverage(cv::Rect& roi, std::vector<Detection> const& dets) {
 
 bool isRoiTooLargeForDetsExtent(cv::Rect const& roi, cv::Rect const& detsExtentInRoi) {
     return isRectTooLarge(roi, detsExtentInRoi,
-                          static_cast<int>(2.5 * ROI_Y_BORDER), static_cast<int>(2.5 * ROI_Y_BORDER));
+                          static_cast<int>(2.5 * ROI_X_BORDER),
+                          static_cast<int>(2.5 * ROI_Y_BORDER));
 }
 
 cv::Rect& adjustRoiToDetsExtent(cv::Rect& roi, cv::Rect detsExtentInRoi) {
@@ -118,9 +113,9 @@ void eliminateOverlapsByThresh(std::vector<Detection>& dets,
 OcrNameplateAlfaRomeo::~OcrNameplateAlfaRomeo() = default;
 
 OcrNameplateAlfaRomeo::OcrNameplateAlfaRomeo(Detector detectorKeys,
-                                     Detector detectorValuesVin,
-                                     Detector detectorValuesStitched,
-                                     Classifier classifierChars)
+                                             Detector detectorValuesVin,
+                                             Detector detectorValuesStitched,
+                                             Classifier classifierChars)
         : detectorKeys_(std::move(detectorKeys)),
           detectorValuesVin_(std::move(detectorValuesVin)),
           detectorValuesStitched_(std::move(detectorValuesStitched)),
@@ -184,7 +179,7 @@ void OcrNameplateAlfaRomeo::detectValueOfVin() {
 
     cv::Rect keyRoi = keyItem.rect;
     cv::Rect valueRoi = estimateValueRoi(NameplateField::VIN, keyRoi);
-    validateRoi(valueRoi, image_);
+    valueRoi &= extent(image_);
     // no need to resize and fill because the model for VIN is trained with stretched images
     std::vector<Detection> valueDets = detectorValuesVin_.detect(image_(valueRoi));
 
@@ -195,7 +190,7 @@ void OcrNameplateAlfaRomeo::detectValueOfVin() {
     // second round in the network
     adjustRoiToDetsExtent(valueRoi, computeExtent(valueDets));
     extendRoiCoverage(valueRoi, valueDets);
-    validateRoi(valueRoi, image_);
+    valueRoi &= extent(image_);
     valueDets = detectorValuesVin_.detect(image_(valueRoi));
 
     sortByXMid(valueDets);
@@ -206,7 +201,7 @@ void OcrNameplateAlfaRomeo::detectValueOfVin() {
     if (isRoiTooLargeForDetsExtent(valueRoi, detsExtent)) {
         // third round in the network
         adjustRoiToDetsExtent(valueRoi, detsExtent);
-        validateRoi(valueRoi, image_);
+        valueRoi &= extent(image_);
         valueDets = detectorValuesVin_.detect(image_(valueRoi));
 
         sortByXMid(valueDets);
@@ -307,10 +302,13 @@ void OcrNameplateAlfaRomeo::eliminateOverlaps(std::vector<Detection>& dets, Name
     std::pair<float, float> firstThresh, secondThresh;
     switch (field) {
         // for fields of which value characters are compact
-        case NameplateField::VIN:
-        case NameplateField::PAINT: {
+        case NameplateField::VIN: {
             firstThresh = std::make_pair(0.6, 0.4);
             secondThresh = std::make_pair(0.6, 0.3);
+        }
+        case NameplateField::PAINT: {
+            firstThresh = std::make_pair(0.6, 0.5);
+            secondThresh = std::make_pair(0.6, 0.4);
         } break;
 
         default: {
@@ -330,33 +328,27 @@ void OcrNameplateAlfaRomeo::addGapDetections(std::vector<Detection>& dets, cv::R
 
     int spacingRef = estimateCharSpacing(dets);
     for (auto itr = std::next(dets.cbegin()); itr != dets.cend(); ++itr) {
-        cv::Rect leftRect = std::prev(itr)->rect;
-        cv::Rect rightRect = itr->rect;
+        cv::Rect const& leftRect = std::prev(itr)->rect;
+        cv::Rect const& rightRect = itr->rect;
+
         if (computeSpacing(leftRect, rightRect) > 1.5 * spacingRef) {
-            int gapX = leftRect.x + leftRect.width - CHAR_X_BORDER;
-            int gapY = (leftRect.y + rightRect.y) / 2 - CHAR_Y_BORDER;
-            int gapW = (rightRect.x - (leftRect.x + leftRect.width)) + CHAR_X_BORDER * 2;
-            int gapH = (leftRect.height + rightRect.height) / 2 + CHAR_Y_BORDER * 2;
+            int gapX = leftRect.br().x;
+            int gapY = (leftRect.y + rightRect.y) / 2;
+            int gapW = (rightRect.x - leftRect.br().x);
+            int gapH = (leftRect.height + rightRect.height) / 2;
+            cv::Rect gapRect(gapX, gapY, gapW, gapH);
+            expandRect(gapRect, CHAR_X_BORDER, CHAR_Y_BORDER);
 
-            int gapXReal = roi.x + gapX;
-            int gapYReal = roi.y + gapY;
+            cv::Rect gapRectReal = gapRect + roi.tl();
+            gapRectReal &= extent(image_);
 
-            cv::Rect gapRect(gapXReal, gapYReal, gapW, gapH);
-            validateRoi(gapRect, image_);
-
-            cv::Mat gapExpanded(gapRect.height, gapRect.width * 10, CV_8UC3, cv::Scalar(0, 0, 0));
-            cv::Rect centerRegion(cv::Point(gapExpanded.cols / 2 - gapRect.width / 2, 0), gapRect.size());
-
-            image_(gapRect).copyTo(gapExpanded(centerRegion));
+            cv::Size sizeExpanded(gapRectReal.width * 10, gapRectReal.height);
+            cv::Mat gapExpanded = imgResizeAndFill(image_(gapRectReal), sizeExpanded);
             std::vector<Detection> gapDets = detectorValuesVin_.detect(gapExpanded);
 
             if (!gapDets.empty()) {
-                gapRect.x = gapX;
-                gapRect.y = gapY;
-                validateRoi(gapRect, roi);
-
                 Detection& gapDet = gapDets.front();
-                gapDet.rect = gapRect;
+                gapDet.rect = gapRect & roi;
 
                 addedDets.push_back(std::move(gapDet));
             }
@@ -371,6 +363,7 @@ void OcrNameplateAlfaRomeo::updateByClassification(std::vector<Detection>& dets,
         if (!isNumbericChar(det.label)) continue;
         if (det.score >= 0.8) continue;
 
+        if (det.rect.area() == 0) continue;
         std::vector<Classification> clss = classifierChars_.classify(srcImg(det.rect), 1);
         if (clss.front().score > 0.9) {
             det.label = clss.front().label;
@@ -400,7 +393,7 @@ void OcrNameplateAlfaRomeo::detectValuesOfOtherCodeFields() {
         if (itrKeyItem == keyOcrDetections_.end()) continue;
 
         cv::Rect originRoi = estimateValueRoi(fields[i], itrKeyItem->second.rect);
-        validateRoi(originRoi, image_);
+        originRoi &= extent(image_);
         roiMapping.emplace(fields[i], std::make_pair(originRoi, targetRois[i]));
     }
 
@@ -421,7 +414,7 @@ void OcrNameplateAlfaRomeo::detectValuesOfOtherCodeFields() {
         // convert them to relative to the roi
         detsExtent = PerspectiveTransform(1, -originRoi.x, -originRoi.y).apply(detsExtent);
         adjustRoiToDetsExtent(originRoi, detsExtent);
-        validateRoi(originRoi, image_);
+        originRoi &= extent(image_);
     }
 
     collage = Collage<NameplateField>(image_, roiMapping, collageSize);
@@ -492,4 +485,4 @@ bool OcrNameplateAlfaRomeo::shouldContainLetters(NameplateField field) {
     }
 }
 
-} // end namespace cuizhou
+} // end namespace cz

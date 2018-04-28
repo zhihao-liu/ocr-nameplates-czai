@@ -8,7 +8,7 @@
 #include <string>
 #include <opencv2/core/core.hpp>
 
-namespace cuizhou {
+namespace cz {
 
 struct OcrDetection {
     std::string text;
@@ -22,7 +22,7 @@ struct OcrDetection {
     bool empty() const;
 };
 
-} // end namespace cuizhou
+} // end namespace cz
 
 
 #endif //CUIZHOU_OCR_DETECTED_ITEM_H

@@ -7,11 +7,11 @@
 
 #include <map>
 #include "ocr_implementation/ocr_handler.h"
-#include "datamodel/keyvalue_detection.h"
+#include "ocr_aux/keyvalue_detection.h"
 #include "ocr_aux/classname_dict.hpp"
 
 
-namespace cuizhou {
+namespace cz {
 
 class OcrNameplate : public OcrHandler {
 protected:

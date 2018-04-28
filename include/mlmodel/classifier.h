@@ -8,7 +8,7 @@
 #include "classification.h"
 
 
-namespace cuizhou {
+namespace cz {
 
 class Classifier : public MlModel {
 public:
@@ -36,6 +36,6 @@ private:
     static std::vector<int> argmax(std::vector<float> const& v, int n);
 };
 
-} // end namespace cuizhou
+} // end namespace cz
 
 #endif //FULL_VEHICLE_INFOMATION_CLASSIFIER_H

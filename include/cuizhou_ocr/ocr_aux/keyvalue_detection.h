@@ -6,10 +6,10 @@
 #define OCR_CUIZHOU_INFOTABLE_H
 
 #include <opencv2/core/core.hpp>
-#include "datamodel/ocr_detection.h"
+#include "ocr_detection.h"
 
 
-namespace cuizhou {
+namespace cz {
 
 struct KeyValueDetection {
     OcrDetection key;
@@ -23,7 +23,7 @@ struct KeyValueDetection {
     friend std::ostream& operator<<(std::ostream& strm, KeyValueDetection const& obj);
 };
 
-} // end namespace cuizhou
+} // end namespace cz
 
 
 #endif //OCR_CUIZHOU_INFOTABLE_H

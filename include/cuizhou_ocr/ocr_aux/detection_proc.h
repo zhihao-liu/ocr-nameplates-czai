@@ -8,10 +8,10 @@
 #include <vector>
 #include <string>
 #include "detection.h"
-#include "datamodel/ocr_detection.h"
+#include "ocr_detection.h"
 
 
-namespace cuizhou {
+namespace cz {
 
 std::vector<std::string> readClassNames(std::string const& path, bool addBackground = false);
 bool isNumbericChar(std::string const& str);
@@ -31,11 +31,11 @@ cv::Rect computeExtent(std::vector<Detection> const& dets);
 double estimateCharAlignmentSlope(std::vector<Detection> const& dets);
 int estimateCharSpacing(std::vector<Detection> const& dets);
 
-cv::Rect& shrinkRectToExtent(cv::Rect& rect, cv::Rect const& extentInRect);
-cv::Rect& expandRect(cv::Rect& rect, int xBorder, int yBorder);
+void shrinkRectToExtent(cv::Rect& rect, cv::Rect const& extentInRect);
+void expandRect(cv::Rect& rect, int xBorder, int yBorder);
 bool isRectTooLarge(cv::Rect const& rect, cv::Rect const& extentInRect, int widthThresh, int heightThresh);
 
-} // end namespace cuizhou
+} // end namespace cz
 
 
 #endif //CUIZHOU_OCR_OCRUTILS_H

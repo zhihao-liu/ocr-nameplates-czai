@@ -10,7 +10,7 @@
 #include "ocr_aux/collage.hpp"
 
 
-namespace cuizhou {
+namespace cz {
 
 class OcrNameplateVolkswagen final : public OcrNameplate {
 public:
@@ -27,7 +27,7 @@ private:
     Detector detectorValues_;
 };
 
-} // end namespace cuizhou
+} // end namespace cz
 
 
 #endif //CUIZHOU_OCR_OCR_NAMEPLATE_VOLKSWAGEN_H

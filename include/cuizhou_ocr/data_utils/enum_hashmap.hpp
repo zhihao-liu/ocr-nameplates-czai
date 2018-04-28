@@ -10,7 +10,7 @@
 #include <unordered_map>
 
 
-namespace cuizhou {
+namespace cz {
 
 template<typename EnumClass>
 struct EnumHasher {
@@ -22,7 +22,7 @@ struct EnumHasher {
 template<typename EnumClass, typename Val>
 using EnumHashMap = std::unordered_map<EnumClass, Val, EnumHasher<EnumClass>>;
 
-} // end namespace cuizhou
+} // end namespace cz
 
 
 #include "./impl/enum_hashmap.impl.hpp"

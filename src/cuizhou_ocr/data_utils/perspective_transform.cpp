@@ -3,8 +3,14 @@
 //
 
 #include <iostream>
-#include "utils/perspective_transform.h"
+#include "data_utils/perspective_transform.h"
 
+
+namespace cz {
+
+PerspectiveTransform::~PerspectiveTransform() = default;
+
+PerspectiveTransform::PerspectiveTransform() = default;
 
 PerspectiveTransform::PerspectiveTransform(double scaleX, double scaleY, double offsetX, double offsetY)
         : scaleX_(scaleX), scaleY_(scaleY), offsetX_(offsetX), offsetY_(offsetY) {}
@@ -26,25 +32,25 @@ void PerspectiveTransform::setScale(double uniformScale) {
     scaleX_ = scaleY_ = uniformScale;
 }
 
-void PerspectiveTransform::shift(double shiftX, double shiftY) {
+void PerspectiveTransform::shiftBy(double shiftX, double shiftY) {
     offsetX_ += shiftX;
     offsetY_ += shiftY;
 }
 
-void PerspectiveTransform::scale(double scaleX, double scaleY) {
+void PerspectiveTransform::scaleBy(double scaleX, double scaleY) {
     scaleX_ *= scaleX;
     scaleY_ *= scaleY;
 }
 
-void PerspectiveTransform::scale(double uniformScale) {
-    scale(uniformScale, uniformScale);
+void PerspectiveTransform::scaleBy(double uniformScale) {
+    scaleBy(uniformScale, uniformScale);
 }
 
 PerspectiveTransform& PerspectiveTransform::reverse() {
     scaleX_ = 1.0 / scaleX_;
     scaleY_ = 1.0 / scaleY_;
-    offsetX_ *=  -scaleX_;
-    offsetY_ *=  -scaleY_;
+    offsetX_ *= -scaleX_;
+    offsetY_ *= -scaleY_;
     return *this;
 }
 
@@ -79,6 +85,8 @@ PerspectiveTransform PerspectiveTransform::merged(PerspectiveTransform const& th
 }
 
 std::ostream& operator<<(std::ostream& strm, PerspectiveTransform const& obj) {
-    return strm << "scale: {"<< obj.scaleX_ << ", " << obj.scaleY_ << "}; "
+    return strm << "scale: {" << obj.scaleX_ << ", " << obj.scaleY_ << "}; "
                 << "offset: {" << obj.offsetX_ << ", " << obj.offsetY_ << "}";
+}
+
 }

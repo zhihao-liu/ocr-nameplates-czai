@@ -8,11 +8,11 @@
 #include "detector.h"
 #include "classifier.h"
 #include "ocr_implementation/ocr_nameplate.h"
-#include "utils/enum_hashmap.hpp"
+#include "data_utils/enum_hashmap.hpp"
 #include "ocr_aux/collage.hpp"
 
 
-namespace cuizhou{
+namespace cz{
 
 class OcrNameplateAlfaRomeo final : public OcrNameplate {
 public:
@@ -50,7 +50,7 @@ private:
     static bool shouldContainLetters(NameplateField field);
 };
 
-} // end namespace cuizhou
+} // end namespace cz
 
 
 #endif //OCR_CUIZHOU_OCRNAMEPLATESALFA_H

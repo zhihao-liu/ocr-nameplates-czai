@@ -5,7 +5,7 @@
 #include "ocr_implementation/ocr_handler.h"
 
 
-namespace cuizhou {
+namespace cz {
 
 OcrHandler::~OcrHandler() = default;
 
@@ -23,4 +23,4 @@ cv::Mat const& OcrHandler::image() const {
     return image_;
 }
 
-} // end namespace cuizhou
+} // end namespace cz

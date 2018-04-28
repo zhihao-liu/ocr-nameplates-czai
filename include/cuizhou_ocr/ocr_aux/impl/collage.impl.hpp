@@ -1,8 +1,8 @@
-#include "utils/cv_extension.h"
-#include "utils/data_proc.hpp"
+#include "data_utils/cv_extension.h"
+#include "data_utils/data_proc.hpp"
 #include "ocr_aux/detection_proc.h"
 
-namespace cuizhou {
+namespace cz {
 
 template <typename FieldEnum>
 Collage<FieldEnum>::RoiTransformInfo::~RoiTransformInfo() = default;
@@ -19,6 +19,11 @@ Collage<FieldEnum>::~Collage() = default;
 
 template<typename FieldEnum>
 Collage<FieldEnum>::Collage() = default;
+
+template<typename FieldEnum>
+cv::Mat const& Collage<FieldEnum>::image() const {
+    return resultImage_;
+}
 
 template<typename FieldEnum>
 Collage<FieldEnum>::Collage(cv::Mat const& image,
@@ -52,7 +57,7 @@ EnumHashMap<FieldEnum, std::vector<Detection>> Collage<FieldEnum>::splitDetectio
     EnumHashMap<FieldEnum, std::vector<Detection>> splitResults =
             distributeItemsByField(dets, roiTransformInfos,
                                    [&](Detection const& det, RoiTransformInfo const& roiInfo) {
-                                       return computeAreaIntersection(det.rect, roiInfo.roi) > overlapThresh * det.rect.area();
+                                       return (det.rect & roiInfo.roi).area() > overlapThresh * det.rect.area();
                                    });
 
     for (auto& fieldResult : splitResults) {
@@ -67,4 +72,4 @@ EnumHashMap<FieldEnum, std::vector<Detection>> Collage<FieldEnum>::splitDetectio
     return splitResults;
 }
 
-} // end namespace cuizhou
+} // end namespace cz

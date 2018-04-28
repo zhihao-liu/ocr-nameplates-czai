@@ -6,7 +6,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 
 
-namespace cuizhou {
+namespace cz {
 
 ClassnameDict<OcrNameplate::NameplateField> const OcrNameplate::fieldDict_(
         {NameplateField::VIN, NameplateField::MANUFACTURER, NameplateField::BRAND, NameplateField::MAX_MASS_ALLOWED, NameplateField::MAX_NET_POWER_OF_ENGINE, NameplateField::COUNTRY, NameplateField::FACTORY, NameplateField::ENGINE_MODEL, NameplateField::NUM_PASSENGERS, NameplateField::VEHICLE_MODEL, NameplateField::ENGINE_DISPLACEMENT, NameplateField::DATE_OF_MANUFACTURE, NameplateField::PAINT},
@@ -49,4 +49,4 @@ std::string OcrNameplate::getResultAsString() const {
     return ss.str();
 }
 
-} // end namespace cuizhou
+} // end namespace cz

@@ -4,7 +4,7 @@
 
 #include "ocr_implementation/ocr_nameplate_volkswagen.h"
 
-namespace cuizhou {
+namespace cz {
 
 OcrNameplateVolkswagen::~OcrNameplateVolkswagen() = default;
 
@@ -17,4 +17,4 @@ void OcrNameplateVolkswagen::processImage() {
     Detector::drawBox(image_, dets);
 }
 
-} // end namespace cuizhou
+} // end namespace cz

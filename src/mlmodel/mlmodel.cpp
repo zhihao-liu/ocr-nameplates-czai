@@ -5,10 +5,10 @@
 #include "mlmodel.h"
 
 
-namespace cuizhou {
+namespace cz {
 
 MlModel::~MlModel() = default;
 
 MlModel::MlModel() = default;
 
-} // end namespace cuizhou
+} // end namespace cz

@@ -2,11 +2,11 @@
 // Created by Zhihao Liu on 4/26/18.
 //
 
-#include "utils/data_proc.hpp"
+#include "data_utils/data_proc.hpp"
 #include <cassert>
 
 
-namespace cuizhou {
+namespace cz {
 
 LinearFit::LinearFit(std::vector<double> const& x, std::vector<double> const& y) {
     assert(x.size() == y.size());
@@ -31,4 +31,4 @@ double LinearFit::constant() const {
     return b;
 }
 
-} // end namespace cuizhou
+} // end namespace cz

@@ -1,4 +1,4 @@
-namespace cuizhou {
+namespace cz {
 
 // find the median of a collection of numbers
 template<typename Container>
@@ -50,23 +50,44 @@ auto computeMean(Container const& container, Func&& toNumber) -> typename std::r
 
     return sum / container.size();
 };
-
 template<typename Container, typename ConflictPred, typename Compare>
 void resolveConflicts(Container& container, ConflictPred&& conflict, Compare&& comp) {
     if (container.size() < 2) return;
 
-    for (auto itr = std::next(container.begin()); itr != container.end(); ) {
-        auto itrPrev = std::prev(itr);
-        if (conflict(*itrPrev, *itr)) {
-            if (comp(*itrPrev, *itr)) {
-                itr = std::next(container.erase(itrPrev));
-            } else {
-                itr = container.erase(itr);
+    for (auto itr1 = container.begin(); itr1 != container.end(); ) {
+        bool erasedItr1 = false;
+
+        for (auto itr2 = container.begin(); itr2 != container.end(); ) {
+            if (itr1 == itr2 || !conflict(*itr1, *itr2)) {
+                ++itr2;
+                continue;
             }
-        } else {
-            ++itr;
+
+            if (comp(*itr1, *itr2)) {
+                itr1 = container.erase(itr1);
+                erasedItr1 = true;
+                break;
+            } else {
+                itr2 = container.erase(itr2);
+                continue;
+            }
         }
+
+        if (!erasedItr1) ++itr1;
     }
+
+//    for (auto itr = std::next(container.begin()); itr != container.end(); ) {
+//        auto itrPrev = std::prev(itr);
+//        if (conflict(*itrPrev, *itr)) {
+//            if (comp(*itrPrev, *itr)) {
+//                itr = std::next(container.erase(itrPrev));
+//            } else {
+//                itr = container.erase(itr);
+//            }
+//        } else {
+//            ++itr;
+//        }
+//    }
 }
 
 template<typename Container, typename Field, typename RefObj, typename RelevancePred>
@@ -85,4 +106,4 @@ auto distributeItemsByField(Container const& items, EnumHashMap<Field, RefObj> c
     return distributions;
 }
 
-}; // end namespace cuizhou
+}; // end namespace cz

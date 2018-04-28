@@ -7,7 +7,7 @@
 #include "opencv2/imgproc/imgproc.hpp"
 
 
-namespace cuizhou {
+namespace cz {
 
 void Detector::init(std::string const& def, std::string const& net, std::vector<std::string> const& classes) {
     m_classes = classes;
@@ -51,6 +51,7 @@ std::vector<Detection> Detector::detect(cv::Mat const& img) const {
     float im_scale_y = floor(img.rows * im_scale / SCALE_MULTIPLE_OF) * SCALE_MULTIPLE_OF / img.rows;
     int height = int(img.rows * im_scale_y);
     int width = int(img.cols * im_scale_x);
+    if (height <= 0 || width <= 0) return dets;
 
     cv::Mat cv_resized;
     float im_info[6];
@@ -293,4 +294,4 @@ std::vector<Detection> Detector::overThresh(int* keep, int num_out, float* sorte
     return dets;
 }
 
-} // end namespace cuizhou
+} // end namespace cz

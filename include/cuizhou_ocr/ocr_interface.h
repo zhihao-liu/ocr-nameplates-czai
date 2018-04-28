@@ -9,7 +9,7 @@
 #include "mlmodel.h"
 #include "ocr_implementation/ocr_handler.h"
 
-namespace cuizhou {
+namespace cz {
 
 enum class OcrType {
     NAMEPLATE_ALFAROMEO = 0,
@@ -18,7 +18,7 @@ enum class OcrType {
 
 class OcrInterface {
 public:
-    ~OcrInterface() = default;
+    ~OcrInterface();
     OcrInterface() = delete;
 
     OcrInterface(OcrType type, std::initializer_list<std::reference_wrapper<MlModel const>> refModels);
@@ -35,6 +35,6 @@ private:
     std::shared_ptr<OcrHandler> ocrHandler_;
 };
 
-} // end namespace cuizhou
+} // end namespace cz
 
 #endif //CUIZHOU_OCR_OCR_INTERFACE_H

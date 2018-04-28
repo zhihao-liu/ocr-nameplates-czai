@@ -5,11 +5,11 @@
 #include "ocr_aux/detection_proc.h"
 #include <fstream>
 #include <limits>
-#include "utils/cv_extension.h"
-#include "utils/data_proc.hpp"
+#include "data_utils/cv_extension.h"
+#include "data_utils/data_proc.hpp"
 
 
-namespace cuizhou {
+namespace cz {
 
 bool isNumbericChar(std::string const& str) {
     return str.length() == 1 && str[0] >= '0' && str[0] <= '9';
@@ -66,9 +66,9 @@ std::string joinDetectedChars(std::vector<Detection> const& dets) {
 }
 
 void eliminateLetters(std::vector<Detection>& dets) {
-    auto itrBeforeRemoved = std::remove_if(dets.begin(), dets.end(),
-                                           [](Detection const& det) { return !isNumbericChar(det.label); });
-    dets.erase(itrBeforeRemoved, dets.end());
+    dets.erase(std::remove_if(dets.begin(), dets.end(),
+                              [](Detection const& det) { return !isNumbericChar(det.label); }),
+               dets.end());
 }
 
 void eliminateYOutliers(std::vector<Detection>& dets, float thresh) {
@@ -76,31 +76,23 @@ void eliminateYOutliers(std::vector<Detection>& dets, float thresh) {
 
     // remove those lies off the horizontal reference line
     int heightRef = findMedian(dets, [](Detection const& det) { return det.rect.height; });
-
     int yMidRef = findMedian(dets, [](Detection const& det) { return yMid(det.rect); });
 
-    std::remove_if(dets.begin(), dets.end(),
-                   [&](Detection const& det) {
-                       return std::abs(yMid(det.rect) - yMidRef) > thresh * heightRef;
-                   });
+    dets.erase(std::remove_if(dets.begin(), dets.end(),
+                              [&](Detection const& det) {
+                                  return std::abs(yMid(det.rect) - yMidRef) > thresh * heightRef;
+                              }),
+               dets.end());
 }
 
 cv::Rect computeExtent(std::vector<Detection> const& dets) {
     if (dets.empty()) return cv::Rect();
 
-    int left = std::numeric_limits<int>::max();
-    int right = std::numeric_limits<int>::min();
-    int top = std::numeric_limits<int>::max();
-    int bottom = std::numeric_limits<int>::min();
-
+    cv::Rect extent = dets.front().rect;
     for (auto const& det : dets) {
-        left = std::min(left, det.rect.x);
-        right = std::max(right, det.rect.br().x);
-        top = std::min(top, det.rect.y);
-        bottom = std::max(bottom, det.rect.br().y);
+        extent |= det.rect;
     }
-
-    return cv::Rect(left, top, right - left + 1, bottom - top + 1);
+    return extent;
 }
 
 double estimateCharAlignmentSlope(std::vector<Detection> const& dets) {
@@ -129,20 +121,21 @@ int estimateCharSpacing(std::vector<Detection> const& dets) {
     return findMedian(spacings);
 }
 
-cv::Rect& shrinkRectToExtent(cv::Rect& rect, cv::Rect const& extentInRect) {
-    rect.x += extentInRect.x;
-    rect.y += extentInRect.y;
+void shrinkRectToExtent(cv::Rect& rect, cv::Rect const& extentInRect) {
+//    rect.x += extentInRect.x;
+//    rect.y += extentInRect.y;
+    rect += extentInRect.tl();
     rect.width = extentInRect.width;
     rect.height = extentInRect.height;
-    return rect;
 }
 
-cv::Rect& expandRect(cv::Rect& rect, int xBorder, int yBorder) {
-    rect.x -= xBorder;
-    rect.y -= yBorder;
-    rect.width += 2 * xBorder;
-    rect.height += 2 * yBorder;
-    return rect;
+void expandRect(cv::Rect& rect, int xBorder, int yBorder) {
+//    rect.x -= xBorder;
+//    rect.y -= yBorder;
+//    rect.width += 2 * xBorder;
+//    rect.height += 2 * yBorder;
+    rect -= cv::Point(xBorder, yBorder);
+    rect += cv::Size(xBorder, yBorder) * 2;
 }
 
 bool isRectTooLarge(cv::Rect const& rect, cv::Rect const& extentInRect, int widthThresh, int heightThresh) {
@@ -150,4 +143,4 @@ bool isRectTooLarge(cv::Rect const& rect, cv::Rect const& extentInRect, int widt
            (rect.height - extentInRect.height > heightThresh);
 }
 
-} // end namespace cuizhou
+} // end namespace cz

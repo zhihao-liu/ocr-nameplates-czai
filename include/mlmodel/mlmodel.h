@@ -6,7 +6,7 @@
 #define CUIZHOU_OCR_MLMODEL_H
 
 
-namespace cuizhou {
+namespace cz {
 
 class MlModel {
 public:
@@ -16,7 +16,7 @@ protected:
     MlModel();
 };
 
-} // end namespace cuizhou
+} // end namespace cz
 
 
 #endif //CUIZHOU_OCR_MLMODEL_H

@@ -2,10 +2,10 @@
 // Created by Zhihao Liu on 4/27/18.
 //
 
-#include "datamodel/ocr_detection.h"
+#include "ocr_aux/ocr_detection.h"
 
 
-namespace cuizhou {
+namespace cz {
 
 OcrDetection::~OcrDetection() = default;
 
@@ -18,4 +18,4 @@ bool OcrDetection::empty() const {
     return text.empty();
 }
 
-} // end namespace cuizhou
+} // end namespace cz

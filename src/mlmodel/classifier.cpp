@@ -3,7 +3,7 @@
 #include "classifier.h"
 
 
-namespace cuizhou {
+namespace cz {
 
 void Classifier::init(std::string const& model_file,
                       std::string const& trained_file,
@@ -185,4 +185,4 @@ void Classifier::preprocess(cv::Mat const& img, std::vector<cv::Mat>& input_chan
     << "Input channels are not wrapping the input layer of the network.";
 }
 
-} // end namespace cuizhou
+} // end namespace cz

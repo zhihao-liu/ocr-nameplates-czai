@@ -10,10 +10,10 @@
 #include <vector>
 #include <unordered_map>
 #include <cassert>
-#include "utils/enum_hashmap.hpp"
+#include "data_utils/enum_hashmap.hpp"
 
 
-namespace cuizhou {
+namespace cz {
 
 template<typename EnumClass>
 class ClassnameDict {
@@ -41,7 +41,7 @@ private:
     std::string const fallbackAlias_;
 };
 
-} // end namespace cuizhou
+} // end namespace cz
 
 
 #include "./impl/classname_dict.impl.hpp"

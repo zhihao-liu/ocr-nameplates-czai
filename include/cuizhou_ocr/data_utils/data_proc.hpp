@@ -12,7 +12,7 @@
 #include "enum_hashmap.hpp"
 
 
-namespace cuizhou {
+namespace cz {
 
 template<typename Container>
 auto findMedian(Container containerCopy) -> typename Container::value_type;
@@ -40,7 +40,7 @@ private:
     double a, b;
 };
 
-} // end namespace cuizhou
+} // end namespace cz
 
 
 #include "./impl/data_proc.impl.hpp"

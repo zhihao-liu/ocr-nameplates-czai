@@ -2,13 +2,15 @@
 // Created by Zhihao Liu on 4/26/18.
 //
 
-#include "ocr_interface.hpp"
+#include "ocr_interface.h"
 #include "ocr_implementation/ocr_nameplate_alfaromeo.h"
 #include "ocr_implementation/ocr_nameplate_volkswagen.h"
 
-namespace cuizhou {
+namespace cz {
 
-OcrInterface::OcrInterface(cuizhou::OcrType type, std::initializer_list<std::reference_wrapper<MlModel const>> refModels) {
+OcrInterface::~OcrInterface() = default;
+
+OcrInterface::OcrInterface(OcrType type, std::initializer_list<std::reference_wrapper<MlModel const>> refModels) {
     std::vector<std::reference_wrapper<MlModel const>> models(refModels);
     switch (type) {
         case OcrType::NAMEPLATE_ALFAROMEO: {
@@ -60,4 +62,4 @@ cv::Mat OcrInterface::drawResult() const {
     return ocrHandler_->drawResult();
 }
 
-} // end namespace cuizhou
+} // end namespace cz

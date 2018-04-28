@@ -5,7 +5,7 @@
 #include <opencv2/core/core.hpp>
 
 
-namespace cuizhou {
+namespace cz {
 
 struct Classification {
     std::string label;
@@ -18,6 +18,6 @@ struct Classification {
             : label(std::move(_label)), score(_score) {};
 };
 
-} // end namespace cuizhou
+} // end namespace cz
 
 #endif //CUIZHOU_OCR_CLASSIFICATION_H

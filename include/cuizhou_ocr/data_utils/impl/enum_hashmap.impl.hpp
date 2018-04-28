@@ -1,4 +1,4 @@
-namespace cuizhou {
+namespace cz {
 
 template<typename EnumClass>
 int EnumHasher<EnumClass>::operator()(EnumClass enumElem) const {
@@ -6,4 +6,4 @@ int EnumHasher<EnumClass>::operator()(EnumClass enumElem) const {
     return std::hash<EnumData>()(static_cast<EnumData>(enumElem));
 }
 
-} // end namespace cuizhou
+} // end namespace cz

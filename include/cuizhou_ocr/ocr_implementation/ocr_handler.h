@@ -8,7 +8,7 @@
 #include <opencv2/core/core.hpp>
 
 
-namespace cuizhou {
+namespace cz {
 
 class OcrHandler {
 public:
@@ -29,7 +29,7 @@ protected:
     OcrHandler();
 };
 
-} // end namespace cuizhou
+} // end namespace cz
 
 
 #endif // OCR_CUIZHOU_OCRHANDLER_H

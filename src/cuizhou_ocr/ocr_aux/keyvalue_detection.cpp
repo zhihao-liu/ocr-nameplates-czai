@@ -2,10 +2,10 @@
 // Created by Zhihao Liu on 4/27/18.
 //
 
-#include "datamodel/keyvalue_detection.h"
+#include "ocr_aux/keyvalue_detection.h"
 
 
-namespace cuizhou {
+namespace cz {
 
 KeyValueDetection::~KeyValueDetection() = default;
 
@@ -18,4 +18,4 @@ std::ostream& operator<<(std::ostream& strm, KeyValueDetection const& obj) {
     return strm << obj.key.text << ": " << obj.value.text;
 }
 
-} // end namespace cuizhou
+} // end namespace cz
