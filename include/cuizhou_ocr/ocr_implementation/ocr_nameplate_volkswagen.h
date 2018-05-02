@@ -19,7 +19,7 @@ public:
 
     explicit OcrNameplateVolkswagen(Detector detectorValues);
 
-    virtual void processImage() override;
+    virtual void processImage(ShowProgress const& showProgress = ShowProgress()) override;
 
 private:
     static EnumHashMap<NameplateField, int> const VALUE_LENGTH;

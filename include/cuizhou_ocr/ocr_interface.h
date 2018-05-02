@@ -25,7 +25,7 @@ public:
 
     void importImage(cv::Mat const& img);
     void setImageSource(cv::Mat const& img);
-    void processImage();
+    void processImage(OcrHandler::ShowProgress const& showProgress = OcrHandler::ShowProgress());
 
     cv::Mat const& image() const;
     cv::Mat drawResult() const;

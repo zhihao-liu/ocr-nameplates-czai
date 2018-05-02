@@ -46,8 +46,8 @@ void OcrInterface::setImageSource(cv::Mat const& img) {
     ocrHandler_->setImageSource(img);
 }
 
-void OcrInterface::processImage() {
-    ocrHandler_->processImage();
+void OcrInterface::processImage(OcrHandler::ShowProgress const& showProgress) {
+    ocrHandler_->processImage(showProgress);
 }
 
 cv::Mat const& OcrInterface::image() const {

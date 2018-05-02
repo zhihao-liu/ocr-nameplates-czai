@@ -11,7 +11,7 @@ OcrNameplateVolkswagen::~OcrNameplateVolkswagen() = default;
 OcrNameplateVolkswagen::OcrNameplateVolkswagen(Detector detectorValues)
         : detectorValues_(std::move(detectorValues)) {}
 
-void OcrNameplateVolkswagen::processImage() {
+void OcrNameplateVolkswagen::processImage(ShowProgress const& showProgress) {
     detectorValues_.setThresh(0.1, 0.2);
     std::vector<Detection> dets = detectorValues_.detect(image_);
     Detector::drawBox(image_, dets);

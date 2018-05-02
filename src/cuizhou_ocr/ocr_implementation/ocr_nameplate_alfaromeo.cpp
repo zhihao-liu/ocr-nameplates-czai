@@ -121,7 +121,7 @@ OcrNameplateAlfaRomeo::OcrNameplateAlfaRomeo(Detector detectorKeys,
           detectorValuesStitched_(std::move(detectorValuesStitched)),
           classifierChars_(std::move(classifierChars)) {}
 
-void OcrNameplateAlfaRomeo::processImage() {
+void OcrNameplateAlfaRomeo::processImage(ShowProgress const& showProgress) {
     result_.clear();
 
     image_ = imgResizeAndFill(image_, STANDARD_IMG_WIDTH, STANDARD_IMG_HEIGHT);
